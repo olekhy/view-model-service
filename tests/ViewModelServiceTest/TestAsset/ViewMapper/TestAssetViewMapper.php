@@ -1,8 +1,9 @@
 <?php
-namespace ViewModelServiceTest\TestAsset;
+namespace ViewModelServiceTest\TestAsset\ViewMapper;
 
 use Exception;
 use ViewModelService\ViewMapper\AbstractViewMapper;
+use ViewModelServiceTest\TestAsset\ViewModel\TestAssetViewModel;
 
 /**
  * Class TestAssetViewMapper
@@ -11,6 +12,10 @@ use ViewModelService\ViewMapper\AbstractViewMapper;
  */
 class TestAssetViewMapper extends AbstractViewMapper
 {
+	/**
+	 * @return TestAssetViewModel
+	 * @throws Exception
+	 */
 	public function map()
 	{
 		$data = call_user_func($this->dataAware);
@@ -18,12 +23,13 @@ class TestAssetViewMapper extends AbstractViewMapper
 		{
 			if (isset($data[$key]))
 			{
-				$this->$key = $data[$key];
+				$this->model->{$key} = $data[$key];
 			}
 			else
 			{
 				throw new Exception('Can not map data to view');
 			}
 		}
+		return $this->model;
 	}
 }

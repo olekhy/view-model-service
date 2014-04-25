@@ -2,11 +2,21 @@
 
 ini_set('error_reporting', -1);
 
-// installed itself
-if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
-	require_once __DIR__ . '/../vendor/autoload.php';
+$files = array(__DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../autoload.php');
 
-// installed as dependency
+foreach ($files as $file) {
+	if (file_exists($file)) {
+		$loader = require $file;
+
+		break;
+	}
 }
 
-die('DD');
+if (!isset($loader)) {
+	throw new RuntimeException('vendor/autoload.php could not be found. Did you run `php composer.phar install`?');
+}
+
+/* @var $loader \Composer\Autoload\ClassLoader */
+$loader->set('ViewModelServiceTest\\', __DIR__);
+
+unset($files, $file, $loader);

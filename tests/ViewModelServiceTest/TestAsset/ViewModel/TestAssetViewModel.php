@@ -1,5 +1,5 @@
 <?php
-namespace ViewModelServiceTest\TestAsset;
+namespace ViewModelServiceTest\TestAsset\ViewModel;
 
 use ViewModelService\ViewModel\ViewModelInterface;
 
