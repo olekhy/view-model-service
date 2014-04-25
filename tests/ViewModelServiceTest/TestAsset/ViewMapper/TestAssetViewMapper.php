@@ -2,12 +2,12 @@
 namespace ViewModelServiceTest\TestAsset;
 
 use Exception;
-use ViewmodelService\ViewMapper\AbstractViewMapper;
+use ViewModelService\ViewMapper\AbstractViewMapper;
 
 /**
  * Class TestAssetViewMapper
  *
- * @package AutoTest\ViewMapperService\TestAsset
+ * @package ViewMapperService\TestAsset
  */
 class TestAssetViewMapper extends AbstractViewMapper
 {

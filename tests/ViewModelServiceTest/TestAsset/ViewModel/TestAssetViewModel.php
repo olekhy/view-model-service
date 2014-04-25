@@ -6,7 +6,7 @@ use ViewModelService\ViewModel\ViewModelInterface;
 /**
  * Class TestAssetViewModel
  *
- * @package AutoTest\ViewModelServiceTest\TestAsset
+ * @package ViewModelServiceTest\TestAsset
  */
 class TestAssetViewModel implements ViewModelInterface
 {
