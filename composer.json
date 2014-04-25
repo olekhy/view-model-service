@@ -1,0 +1,28 @@
+{
+	"name": "olekhy/view-model-service",
+	"type": "library",
+	"description": "Helper for view modeling",
+	"keywords": ["view" , "model"],
+	"homepage": "https://github.com/olekhy/view-model-service",
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "Oleksandr Khutoretskyy",
+			"email": "olekhy@gmail.com"
+		}
+	],
+	"require": {
+		"php": ">=5.3.3"
+	},
+	"require-dev": {
+		"phpunit/phpunit": ">=3.7",
+		"phpmd/phpmd": "1.5.*",
+		"squizlabs/php_codesniffer": "1.4.*",
+		"satooshi/php-coveralls": "~0.6"
+	},
+	"autoload": {
+		"psr-0": {
+			"ViewModelService\\": "src"
+		}
+	}
+}
