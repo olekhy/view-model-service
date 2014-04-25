@@ -4,7 +4,7 @@ namespace ViewModelService\ViewModel;
 /**
  * Interface ViewModelInterface
  *
- * @package ViewComposer\ViewModel
+ * @package ViewModelService\ViewModel
  */
 interface ViewModelInterface
 {

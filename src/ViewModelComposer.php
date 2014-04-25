@@ -10,13 +10,35 @@ use ViewModelService\ViewModel\ViewModelInterface;
  */
 class ViewModelComposer
 {
+	/**
+	 * @var string  namespace where need look up for classes
+	 */
+	protected $ns;
+
+	public function __construct($options = null)
+	{
+		if (isset($options['namespace']))
+		{
+			$this->setNs($options['namespace']);
+		}
+		else
+		{
+			$this->ns = __NAMESPACE__;
+		}
+	}
+
+	/**
+	 * @param $receptionId
+	 * @param $callable
+	 * @return CreationRecipe
+	 */
 	public function getRecipe($receptionId, $callable)
 	{
-		$classNameViewModel = __NAMESPACE__ . '\\ViewModel\\' . $receptionId . '\\ViewModel';
-		$classNameViewModelMapper = __NAMESPACE__ . '\\ViewMapper\\' . $receptionId . '\\ViewMapper';
+		$classNameViewModel = $this->ns . '\\ViewModel\\' . $receptionId . 'ViewModel';
+		$classNameViewModelMapper = $this->ns . '\\ViewMapper\\' . $receptionId . 'ViewMapper';
 		if (!is_callable($callable))
 		{
-			$callable = function($callable)
+			$callable = function() use ($callable)
 			{
 				return $callable;
 			};
@@ -25,14 +47,32 @@ class ViewModelComposer
 	}
 
 	/**
-	 * @param CreationRecipe $reception
+	 * @param CreationRecipe $recipe
 	 * @return ViewModelInterface
 	 */
-	public function composeFromRecipe(CreationRecipe $reception)
+	public function composeFromRecipe(CreationRecipe $recipe)
 	{
-		$model = $reception->getModel();
-		$mapper = $reception->getMapper();
-		$mapper->setDataAwareCallable($reception->getCallable())->setViewModel($model);
+		$model = $recipe->getModel();
+		$mapper = $recipe->getMapper();
+		$mapper->setDataAwareCallable($recipe->getCallable())->setViewModel($model);
 		return $mapper->map();
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function getNs()
+	{
+		return $this->ns;
+	}
+
+	/**
+	 * @param $namespace
+	 * @return $this
+	 */
+	private function setNs($namespace)
+	{
+		$this->ns = $namespace;
+		return $this;
 	}
 }

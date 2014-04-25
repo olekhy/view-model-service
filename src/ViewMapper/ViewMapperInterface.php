@@ -6,7 +6,7 @@ use ViewModelService\ViewModel\ViewModelInterface;
 /**
  * Interface ViewMapperInterface
  *
- * @package ViewComposer\ViewMapper
+ * @package ViewModelService\ViewMapper
  */
 interface ViewMapperInterface
 {
