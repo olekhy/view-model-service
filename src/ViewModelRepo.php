@@ -21,7 +21,7 @@ class ViewModelRepo
 	/**
 	 * @var CreationRecipe[]
 	 */
-	protected $receptions;
+	protected $recipes;
 
 	/**
 	 * @var array View models instances
@@ -40,12 +40,12 @@ class ViewModelRepo
 
 	final public function __clone()
 	{
-
+		throw new LogicException('Singleton is not cloneable');
 	}
 
 	final public function __wakeup()
 	{
-
+		throw new LogicException('Singleton un serializing is not valid');
 	}
 
 	/**
@@ -63,7 +63,7 @@ class ViewModelRepo
 	/**
 	 *
 	 */
-	public function resetRepo()
+	public static function resetRepo()
 	{
 		static::$instance = null;
 	}
@@ -79,17 +79,15 @@ class ViewModelRepo
 	{
 		list($type, $name) = sscanf($methodName, '%3s%s');
 
-		if (isset($arguments[1]))
-		{
-			$name = $this->getExtendedName($name, $arguments[1]);
-		}
 
-		if (strcasecmp('add', $type) !== 0)
+
+		if (strcasecmp('add', $type) === 0)
 		{
-			$this->attachRecipe($type, $arguments[0]);
+			$this->attachRecipe($name, $arguments);
 		}
-		elseif (strcasecmp('get', $type) !== 0)
+		elseif (strcasecmp('get', $type) === 0)
 		{
+			$name = isset($arguments[0]) ? $this->getExtendedName($name, $arguments[0]) : $name;
 			return $this->getModel($name);
 		}
 		else
@@ -111,15 +109,15 @@ class ViewModelRepo
 	 */
 	protected function getModel($name)
 	{
-		if (null === $this->receptions[$name])
+		if (!isset($this->recipes[$name]))
 		{
-			throw new InvalidArgumentException('Could not create view model from not exists reception by name:' . $name);
+			throw new InvalidArgumentException('Could not create view model from not exists recipe by name: ' . $name);
 		}
 
-		if (null === $this->models[$name])
+		if (!isset($this->models[$name]))
 		{
 			$composer = $this->getViewModelComposer();
-			$this->models[$name] = $composer->composeFromRecipe($this->receptions[$name]);
+			$this->models[$name] = $composer->composeFromRecipe($this->recipes[$name]);
 		}
 
 		return $this->models[$name];
@@ -138,19 +136,32 @@ class ViewModelRepo
 	}
 
 	/**
-	 * @param string $type
-	 * @param mixed  $argument
+	 * @param string $name
+	 * @param array $arguments
 	 * @throws LogicException
 	 */
-	protected function attachRecipe($type, $argument)
+	protected function attachRecipe($name, array $arguments)
 	{
-		if (null !== $this->receptions[$type])
+		$specificName = $name;
+		$callable = null;
+		$numOfArgs = count($arguments);
+		if ($numOfArgs == 2)
 		{
-			throw new LogicException('You try to override already exists reception for creation of the view model');
+			list($callable, $specificName) = $arguments;
+			$specificName = $this->getExtendedName($name, $specificName);
+		}
+		elseif($numOfArgs == 1)
+		{
+			$callable = array_shift($arguments);
+		}
+
+		if (isset($this->recipes[$specificName]))
+		{
+			throw new LogicException(sprintf('You try to override already exists recipe "%s"', $specificName));
 		}
 
 		$composer = $this->getViewModelComposer();
-		$this->receptions[$type] = $composer->getRecipe($type, $argument);
+		$this->recipes[$specificName] = $composer->getRecipe($name, $callable);
 	}
 
 	/**
