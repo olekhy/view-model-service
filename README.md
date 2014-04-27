@@ -15,11 +15,11 @@ The module named "ViewModelService" could be used for:
 
 Firstly we will have in codebase of project many View Models classes which oneself a simples presentation of variables
 that we obtained from database or another sources and will be using in our view templates.
-All of the View Model classes needed to be named by convention __ConcreteName__ViewModel and must implement an interface __ViewModelInterface__.
+All of the View Model classes needed to be named by convention **ConcreteNameViewModel** and must implement an interface **ViewModelInterface**.
 
 Parallel to the view models we create View Model Mapper classes, the purpose of the mapper class is the mapping data to the View Model instance.
-Naming convention for the Mapper class is similar to the View Model naming and and looks like this __ConcreteName__ViewMapper.
-All mappers implement an interface __ViewMapperInterface__ and must realizing the map() method which contains logic that describes
+Naming convention for the Mapper class is similar to the View Model naming and and looks like this **ConcreteNameViewMapper**.
+All mappers implement an interface **ViewMapperInterface** and must realizing the map() method which contains logic that describes
 how will be mapped data to the View Model.
 
 Process of applying of data is internally segregated into two logical independent processes,
@@ -61,15 +61,15 @@ now in View Template
 
 ```php
 
-	echo ViewModelRepo::getRepo()->addUserProfile()->firstname;
+	echo ViewModelRepo::getRepo()->getUserProfile()->firstname;
 	echo '<br/>';
-	echo ViewModelRepo::getRepo()->addUserProfile()->lastname;
+	echo ViewModelRepo::getRepo()->getUserProfile()->lastname;
 
 ```
 
 Important is that the both UserProfileViewModel and UserProfileViewMapper classes exists in the code scope.
 
-Follow you can see same other usage cases:
+Follow you can see some other usage cases:
 
 ```php
 
