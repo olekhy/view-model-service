@@ -45,7 +45,7 @@ class ViewModelComposerTest extends TestCase
 			'data3' => 'C',
 			'data4' => 'D',
 			'data5' => 'E',
-	);
+		);
 
 		$callable = function() use ($data)
 		{
