@@ -3,7 +3,10 @@ View Model service
 
 [![Build Status](https://travis-ci.org/olekhy/view-model-service.svg)](https://travis-ci.org/olekhy/view-model-service)
 
-[![Coverage Status](https://coveralls.io/repos/olekhy/view-model-service/badge.png)](https://coveralls.io/r/olekhy/view-model-service)
+[![Coverage Status](https://coveralls.io/repos/olekhy/view-model-service/badge.png?branch=develop)](https://coveralls.io/r/olekhy/view-model-service?branch=master)
+
+
+[![Coverage Status](https://coveralls.io/repos/olekhy/view-model-service/badge.png?branch=develop)](https://coveralls.io/r/olekhy/view-model-service?branch=develop)
 
 The module named "ViewModelService" could be used for:
 
