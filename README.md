@@ -1,6 +1,7 @@
 View Model service
 ==================
 
+[![Build Status](https://travis-ci.org/olekhy/view-model-service.svg)](https://travis-ci.org/olekhy/view-model-service)
 
 The module named "ViewModelService" could be used for:
 
