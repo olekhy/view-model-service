@@ -21,6 +21,10 @@ class ViewModelComposer
 		{
 			$this->setNs($options['namespace']);
 		}
+		elseif(false === $options['namespace'])
+		{
+			$this->ns = false;
+		}
 		else
 		{
 			$this->ns = __NAMESPACE__;
@@ -34,8 +38,8 @@ class ViewModelComposer
 	 */
 	public function getRecipe($receptionId, $callable)
 	{
-		$classNameViewModel = $this->ns . '\\ViewModel\\' . $receptionId . 'ViewModel';
-		$classNameViewModelMapper = $this->ns . '\\ViewMapper\\' . $receptionId . 'ViewMapper';
+		$classNameViewModel = (false !== $this->ns ? $this->ns . '\\ViewModel\\' : '') . $receptionId . 'ViewModel';
+		$classNameViewModelMapper = (false !== $this->ns ? $this->ns . '\\ViewMapper\\' : '') . $receptionId . 'ViewMapper';
 		if (!is_callable($callable))
 		{
 			$callable = function() use ($callable)

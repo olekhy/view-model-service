@@ -12,7 +12,7 @@ use ViewModelService\ViewModel\ViewModelInterface;
  * @package ViewModelService
  *
  * @method getExample($optionalPostfix = null)
- * @method addExample($callable, $optionalPostfix = null)
+ * @method ViewModelRepo addExample($callable, $optionalPostfix = null)
  */
 class ViewModelRepo
 {
