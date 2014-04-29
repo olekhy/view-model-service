@@ -45,7 +45,7 @@ class ViewModelRepo
 
 	final public function __wakeup()
 	{
-		throw new LogicException('Singleton un serializing is not valid');
+		throw new LogicException('Singleton un serializing is invalid approach');
 	}
 
 	/**
@@ -79,8 +79,6 @@ class ViewModelRepo
 	{
 		list($type, $name) = sscanf($methodName, '%3s%s');
 
-
-
 		if (strcasecmp('add', $type) === 0)
 		{
 			$this->attachRecipe($name, $arguments);
@@ -93,8 +91,8 @@ class ViewModelRepo
 		else
 		{
 			throw new BadMethodCallException(sprintf(
-					'Please use method %1$s::add<NameOfViewModel>($callable, $optionalPostfix = null) to map data to a view model
-					 and %1$s::add|get<NameOfViewModel>($optionalPostfix = null) get view model',
+					'Please use method %1$s::add<NameOfView>($callable, $optionalPostfix = null) to map data to a view model'
+					. PHP_EOL . 'or %1$s::get<NameOfView>($optionalPostfix = null) to get view model from repo',
 					get_class($this)
 				)
 			);
@@ -185,5 +183,4 @@ class ViewModelRepo
 		}
 		return $this->viewModelComposer;
 	}
-
 }

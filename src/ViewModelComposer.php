@@ -19,11 +19,7 @@ class ViewModelComposer
 	{
 		if (isset($options['namespace']))
 		{
-			$this->setNs($options['namespace']);
-		}
-		elseif(false === $options['namespace'])
-		{
-			$this->ns = false;
+			$this->ns = $options['namespace'];
 		}
 		else
 		{
@@ -38,14 +34,20 @@ class ViewModelComposer
 	 */
 	public function getRecipe($receptionId, $callable)
 	{
-		$classNameViewModel = (false !== $this->ns ? $this->ns . '\\ViewModel\\' : '') . $receptionId . 'ViewModel';
-		$classNameViewModelMapper = (false !== $this->ns ? $this->ns . '\\ViewMapper\\' : '') . $receptionId . 'ViewMapper';
 		if (!is_callable($callable))
 		{
 			$callable = function() use ($callable)
 			{
 				return $callable;
 			};
+		}
+
+		$classNameViewModel = (false !== $this->ns ? $this->ns . '\\ViewModel\\' : '') . $receptionId . 'ViewModel';
+		$classNameViewModelMapper = (false !== $this->ns ? $this->ns . '\\ViewMapper\\' : '') . $receptionId . 'ViewMapper';
+
+		if (!class_exists($classNameViewModelMapper))
+		{
+			$classNameViewModelMapper = null;
 		}
 		return new CreationRecipe($receptionId, $callable, $classNameViewModel, $classNameViewModelMapper);
 	}
@@ -56,27 +58,15 @@ class ViewModelComposer
 	 */
 	public function composeFromRecipe(CreationRecipe $recipe)
 	{
-		$model = $recipe->getModel();
-		$mapper = $recipe->getMapper();
-		$mapper->setDataAwareCallable($recipe->getCallable())->setViewModel($model);
-		return $mapper->map();
-	}
-
-	/**
-	 * @return string
-	 */
-	protected function getNs()
-	{
-		return $this->ns;
-	}
-
-	/**
-	 * @param $namespace
-	 * @return $this
-	 */
-	private function setNs($namespace)
-	{
-		$this->ns = $namespace;
-		return $this;
+		if ($recipe->hasMapper())
+		{
+			$mapper = $recipe->getMapper($recipe->getModel(), $recipe->getCallable());
+			return $mapper->getViewModelComplete();
+		}
+		else
+		{
+			$data = $recipe->getCallable();
+			return $recipe->getModel($data());
+		}
 	}
 }

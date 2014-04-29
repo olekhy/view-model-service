@@ -33,7 +33,7 @@ class CreationRecipe
 	 */
 	protected $callable;
 
-	public function __construct($name, $callable, $classModel, $classMapper)
+	public function __construct($name, $callable, $classModel, $classMapper = null)
 	{
 		$this->setName($name);
 		$this->setCallable($callable);
@@ -84,10 +84,15 @@ class CreationRecipe
 
 	/**
 	 * @param string $classModel
+	 * @throws InvalidArgumentException
 	 * @return $this
 	 */
 	public function setClassModel($classModel)
 	{
+		if (!class_exists($classModel))
+		{
+			throw new InvalidArgumentException(sprintf('Class "%s" does not exists', $classModel));
+		}
 		$this->classModel = $classModel;
 		return $this;
 	}
@@ -119,21 +124,31 @@ class CreationRecipe
 	}
 
 	/**
+	 * @return bool
+	 */
+	public function hasMapper()
+	{
+		return isset($this->classMapper);
+	}
+	/**
+	 * @param ViewModelInterface $model
+	 * @param $callable
 	 * @return ViewMapperInterface
 	 */
-	public function getMapper()
+	public function getMapper(ViewModelInterface $model, $callable)
 	{
 		$mapper = $this->getClassMapper();
-		return new $mapper();
+		return new $mapper($model, $callable);
 	}
 
 	/**
+	 * @param null|mixed $data
 	 * @return ViewModelInterface
 	 */
-	public function getModel()
+	public function getModel($data = null)
 	{
 		$model = $this->getClassModel();
-		return new $model();
+		return new $model($data);
 	}
 }
 
