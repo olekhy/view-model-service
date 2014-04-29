@@ -5,7 +5,6 @@ View Model service
 
 [![Coverage Status](https://coveralls.io/repos/olekhy/view-model-service/badge.png?branch=develop)](https://coveralls.io/r/olekhy/view-model-service?branch=master)
 
-
 [![Coverage Status](https://coveralls.io/repos/olekhy/view-model-service/badge.png?branch=develop)](https://coveralls.io/r/olekhy/view-model-service?branch=develop)
 
 The module named "ViewModelService" could be used for:
