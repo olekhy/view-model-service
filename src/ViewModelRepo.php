@@ -4,6 +4,7 @@ namespace ViewModelService;
 use BadMethodCallException;
 use InvalidArgumentException;
 use LogicException;
+use UnexpectedValueException;
 use ViewModelService\ViewModel\ViewModelInterface;
 
 /**
@@ -137,12 +138,14 @@ class ViewModelRepo
 	 * @param string $name
 	 * @param array $arguments
 	 * @throws LogicException
+	 * @throws UnexpectedValueException
 	 */
 	protected function attachRecipe($name, array $arguments)
 	{
 		$specificName = $name;
 		$callable = null;
 		$numOfArgs = count($arguments);
+
 		if ($numOfArgs == 2)
 		{
 			list($callable, $specificName) = $arguments;
@@ -151,6 +154,10 @@ class ViewModelRepo
 		elseif($numOfArgs == 1)
 		{
 			$callable = array_shift($arguments);
+		}
+		else
+		{
+			throw new UnexpectedValueException('Recipe can not be attached because does not known about handling with more than two arguments');
 		}
 
 		if (isset($this->recipes[$specificName]))
