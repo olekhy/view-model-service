@@ -1,6 +1,7 @@
 <?php
 namespace ViewModelService;
 
+use LogicException;
 use ViewModelService\ViewModel\ViewModelInterface;
 
 /**
@@ -15,6 +16,11 @@ class ViewModelComposer
 	 */
 	protected $ns;
 
+	/**
+	 * @var CreateViewModelBehaviourInterface[]
+	 */
+	protected $behaviour;
+
 	public function __construct($options = null)
 	{
 		if (isset($options['namespace']))
@@ -25,6 +31,18 @@ class ViewModelComposer
 		{
 			$this->ns = __NAMESPACE__;
 		}
+
+		if (isset($options['behaviour_on_create']))
+		{
+			if (!is_array($options['behaviour_on_create']))
+			{
+				$options['behaviour_on_create'] = array($options['behaviour_on_create']);
+			}
+			foreach ($options['behaviour_on_create'] as $behaviour)
+			{
+				$this->registerBehaviourOnCreateModel($behaviour);
+			}
+		}
 	}
 
 	/**
@@ -34,21 +52,8 @@ class ViewModelComposer
 	 */
 	public function getRecipe($receptionId, $callable)
 	{
-		if (!is_callable($callable))
-		{
-			$callable = function() use ($callable)
-			{
-				return $callable;
-			};
-		}
-
 		$classNameViewModel = (false !== $this->ns ? $this->ns . '\\ViewModel\\' : '') . $receptionId . 'ViewModel';
 		$classNameViewModelMapper = (false !== $this->ns ? $this->ns . '\\ViewMapper\\' : '') . $receptionId . 'ViewMapper';
-
-		if (!class_exists($classNameViewModelMapper))
-		{
-			$classNameViewModelMapper = null;
-		}
 		return new CreationRecipe($receptionId, $callable, $classNameViewModel, $classNameViewModelMapper);
 	}
 
@@ -58,15 +63,68 @@ class ViewModelComposer
 	 */
 	public function composeFromRecipe(CreationRecipe $recipe)
 	{
-		if ($recipe->hasMapper())
+		$this->applyBehaviour();
+		$model = $recipe->createViewModel();
+		$this->revertBehaviour();
+		return $model;
+	}
+
+
+
+	/**
+	 * @param CreateViewModelBehaviourInterface $behavior
+	 * @throws LogicException
+	 */
+	protected function registerBehaviourOnCreateModel(CreateViewModelBehaviourInterface $behavior)
+	{
+		$hash = spl_object_hash($behavior);
+		if(isset($this->behaviour[$hash]))
 		{
-			$mapper = $recipe->getMapper($recipe->getModel(), $recipe->getCallable());
-			return $mapper->getViewModelComplete();
+			throw new LogicException(sprintf('Behaviour "%s" of same typ is already registered. You need remove this one first',
+							get_class($behavior))
+			);
 		}
-		else
+		$this->behaviour[$hash] = $behavior;
+	}
+
+	/**
+	 * @param CreateViewModelBehaviourInterface $behavior
+	 */
+	protected function unRegisterBehaviourOnCreateModel(CreateViewModelBehaviourInterface $behavior)
+	{
+		unset($this->behaviour[spl_object_hash($behavior)]);
+	}
+
+	/**
+	 * @return $this
+	 */
+	protected function applyBehaviour()
+	{
+		$this->processBehaviour('on');
+		return $this;
+	}
+
+	/**
+	 * @return $this
+	 */
+	protected function revertBehaviour()
+	{
+		$this->processBehaviour('off');
+		return $this;
+	}
+
+	/**
+	 * @param string $typ on or off
+	 */
+	protected function processBehaviour($typ)
+	{
+		if (!empty($this->behaviour))
 		{
-			$data = $recipe->getCallable();
-			return $recipe->getModel($data());
+			$method = strtolower($typ);
+			foreach ($this->behaviour as $behaviour)
+			{
+				$behaviour->$method();
+			}
 		}
 	}
 }
