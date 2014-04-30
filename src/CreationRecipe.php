@@ -50,9 +50,16 @@ class CreationRecipe
 	{
 		if (!is_callable($callable))
 		{
-			throw new InvalidArgumentException(sprintf('Invalid argument "%s" expected typ of callable', gettype($callable)));
+			$this->callable = function() use ($callable)
+			{
+				return $callable;
+			};
 		}
-		$this->callable = $callable;
+		else
+		{
+			$this->callable = $callable;
+		}
+
 		return $this;
 	}
 
@@ -128,17 +135,24 @@ class CreationRecipe
 	 */
 	public function hasMapper()
 	{
-		return isset($this->classMapper);
+		if (class_exists($this->classMapper))
+		{
+			return true;
+		}
+		return false;
 	}
 	/**
-	 * @param ViewModelInterface $model
-	 * @param $callable
-	 * @return ViewMapperInterface
+	 * @return ViewMapperInterface|bool Return false when mapper can not be constructed
 	 */
-	public function getMapper(ViewModelInterface $model, $callable)
+	public function getMapper()
 	{
-		$mapper = $this->getClassMapper();
-		return new $mapper($model, $callable);
+		if ($this->hasMapper())
+		{
+			$mapper = $this->getClassMapper();
+			$model = $this->getModel();
+			return new $mapper($this->getModel(), $this->callable);
+		}
+		return false;
 	}
 
 	/**
@@ -149,6 +163,23 @@ class CreationRecipe
 	{
 		$model = $this->getClassModel();
 		return new $model($data);
+	}
+
+	/**
+	 * @return ViewModelInterface
+	 */
+	public function createViewModel()
+	{
+		$mapper = $this->getMapper();
+		if (false === $mapper)
+		{
+			$data = $this->callable;
+			return $this->getModel($data());
+		}
+		else
+		{
+			return $mapper->getViewModelComplete();
+		}
 	}
 }
 
