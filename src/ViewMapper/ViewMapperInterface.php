@@ -12,7 +12,7 @@ interface ViewMapperInterface
 {
 	/**
 	 * @param mixed $data
-	 * @return ViewModelInterface
+	 * @return void
 	 */
 	public function map($data);
 

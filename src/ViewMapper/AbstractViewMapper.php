@@ -12,16 +12,6 @@ use ViewModelService\ViewModel\ViewModelInterface;
 abstract class AbstractViewMapper implements ViewMapperInterface
 {
 	/**
-	 * @param ViewModelInterface $model
-	 * @param $callable
-	 */
-	public function __construct(ViewModelInterface $model, $callable)
-	{
-		$this->model = $model;
-		$this->setDataAwareCallable($callable);
-	}
-
-	/**
 	 * @var ViewModelInterface
 	 */
 	protected $model;
@@ -30,6 +20,16 @@ abstract class AbstractViewMapper implements ViewMapperInterface
 	 * @var Callable
 	 */
 	protected $dataAware;
+
+	/**
+	 * @param ViewModelInterface $model
+	 * @param $callable
+	 */
+	public function __construct(ViewModelInterface $model, $callable)
+	{
+		$this->model = $model;
+		$this->setDataAwareCallable($callable);
+	}
 
 	/**
 	 * @inheritdoc
@@ -67,6 +67,7 @@ abstract class AbstractViewMapper implements ViewMapperInterface
 	 */
 	public function getViewModelComplete()
 	{
-		return $this->map($this->getDataForMapping());
+		$this->map($this->getDataForMapping());
+		return $this->model;
 	}
 }
