@@ -46,7 +46,7 @@ class ViewModelRepo
 
 	final public function __wakeup()
 	{
-		throw new LogicException('Singleton un serializing is invalid approach');
+		throw new LogicException('Singleton un serializing is an invalid approach');
 	}
 
 	/**

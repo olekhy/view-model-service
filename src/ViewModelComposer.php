@@ -1,6 +1,7 @@
 <?php
 namespace ViewModelService;
 
+use InvalidArgumentException;
 use LogicException;
 use ViewModelService\ViewModel\ViewModelInterface;
 
@@ -14,47 +15,43 @@ class ViewModelComposer
 	/**
 	 * @var string  namespace where need look up for classes
 	 */
-	protected $ns;
+	protected $namespace;
 
 	/**
-	 * @var CreateViewModelBehaviourInterface[]
+	 * @var ContextualCreateInterface[]
 	 */
-	protected $behaviour;
+	protected $context;
 
-	public function __construct($options = null)
+	/**
+	 * @var bool
+	 */
+	protected $hasContext = false;
+
+	public function __construct(array $options = null)
 	{
 		if (isset($options['namespace']))
 		{
-			$this->ns = $options['namespace'];
+			$this->setNamespace($options['namespace']);
 		}
 		else
 		{
-			$this->ns = __NAMESPACE__;
+			$this->namespace = __NAMESPACE__;
 		}
 
-		if (isset($options['behaviour_on_create']))
+		if (isset($options['context']))
 		{
-			if (!is_array($options['behaviour_on_create']))
-			{
-				$options['behaviour_on_create'] = array($options['behaviour_on_create']);
-			}
-			foreach ($options['behaviour_on_create'] as $behaviour)
-			{
-				$this->registerBehaviourOnCreateModel($behaviour);
-			}
+			$this->setContext($options['context']);
 		}
 	}
 
 	/**
-	 * @param $receptionId
+	 * @param $recipeId
 	 * @param $callable
 	 * @return CreationRecipe
 	 */
-	public function getRecipe($receptionId, $callable)
+	public function getRecipe($recipeId, $callable)
 	{
-		$classNameViewModel = (false !== $this->ns ? $this->ns . '\\ViewModel\\' : '') . $receptionId . 'ViewModel';
-		$classNameViewModelMapper = (false !== $this->ns ? $this->ns . '\\ViewMapper\\' : '') . $receptionId . 'ViewMapper';
-		return new CreationRecipe($receptionId, $callable, $classNameViewModel, $classNameViewModelMapper);
+		return new CreationRecipe($recipeId, $callable, $this->namespace);
 	}
 
 	/**
@@ -63,68 +60,71 @@ class ViewModelComposer
 	 */
 	public function composeFromRecipe(CreationRecipe $recipe)
 	{
-		$this->applyBehaviour();
-		$model = $recipe->createViewModel();
-		$this->revertBehaviour();
-		return $model;
+		if ($this->hasContext())
+		{
+			$context = $this->contextChaining($this->context);
+			return $context->createViewModel($recipe);
+		}
+		else
+		{
+			return $recipe->createViewModel();
+		}
 	}
 
-
+	/**
+	 * @param string $namespace
+	 * @return $this
+	 */
+	protected function setNamespace($namespace)
+	{
+		if (null !== $namespace)
+		{
+			$this->namespace = $namespace;
+		}
+		return $this;
+	}
 
 	/**
-	 * @param CreateViewModelBehaviourInterface $behavior
+	 * @param ContextualCreateInterface[] $context
+	 * @return $this
 	 * @throws LogicException
 	 */
-	protected function registerBehaviourOnCreateModel(CreateViewModelBehaviourInterface $behavior)
+	protected function setContext($context)
 	{
-		$hash = spl_object_hash($behavior);
-		if(isset($this->behaviour[$hash]))
+		if (!is_array($context))
 		{
-			throw new LogicException(sprintf('Behaviour "%s" of same typ is already registered. You need remove this one first',
-							get_class($behavior))
-			);
+			$context = array($context);
 		}
-		$this->behaviour[$hash] = $behavior;
-	}
+		$this->context = $context;
 
-	/**
-	 * @param CreateViewModelBehaviourInterface $behavior
-	 */
-	protected function unRegisterBehaviourOnCreateModel(CreateViewModelBehaviourInterface $behavior)
-	{
-		unset($this->behaviour[spl_object_hash($behavior)]);
-	}
-
-	/**
-	 * @return $this
-	 */
-	protected function applyBehaviour()
-	{
-		$this->processBehaviour('on');
 		return $this;
 	}
 
 	/**
-	 * @return $this
+	 * @param ContextualCreateInterface[] $context
+	 * @return ContextualCreateInterface
+	 * @throws LogicException
+	 * @throws InvalidArgumentException
 	 */
-	protected function revertBehaviour()
+	protected function contextChaining(array $context)
 	{
-		$this->processBehaviour('off');
-		return $this;
-	}
-
-	/**
-	 * @param string $typ on or off
-	 */
-	protected function processBehaviour($typ)
-	{
-		if (!empty($this->behaviour))
+		foreach ($context as $current)
 		{
-			$method = strtolower($typ);
-			foreach ($this->behaviour as $behaviour)
+			if (false !== next($context))
 			{
-				$behaviour->$method();
+				$current->appendChainedContext(current($context));
 			}
 		}
+
+		return array_shift($context);
 	}
+
+	/**
+	 * @return bool
+	 */
+	protected function hasContext()
+	{
+		return !empty($this->context);
+	}
+
 }
