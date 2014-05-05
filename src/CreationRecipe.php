@@ -29,16 +29,19 @@ class CreationRecipe
 	protected $name;
 
 	/**
+	 * @var string | bool  when boolean false than no namespace wil be used for look up needed classes
+	 */
+	protected $namespace;
+	/**
 	 * @var Closure
 	 */
 	protected $callable;
 
-	public function __construct($name, $callable, $classModel, $classMapper = null)
+	public function __construct($name, $callable, $namespace = false)
 	{
-		$this->setName($name);
+		$this->name = $name;
 		$this->setCallable($callable);
-		$this->setClassModel($classModel);
-		$this->setClassMapper($classMapper);
+		$this->namespace = $namespace;
 	}
 
 	/**
@@ -86,6 +89,18 @@ class CreationRecipe
 	 */
 	public function getClassMapper()
 	{
+		if (null !== $this->classMapper)
+		{
+			return $this->classMapper;
+		}
+
+		if (false != $this->namespace)
+		{
+			$this->classMapper = $this->namespace . '\\ViewMapper\\';
+		}
+
+		$this->classMapper .= $this->name . 'ViewMapper';
+
 		return $this->classMapper;
 	}
 
@@ -109,6 +124,21 @@ class CreationRecipe
 	 */
 	public function getClassModel()
 	{
+		if (null !== $this->classModel)
+		{
+			return $this->classModel;
+		}
+
+		if (false != $this->namespace)
+		{
+			$classModel = $this->namespace . '\\ViewModel\\' . $this->name . 'ViewModel';
+		} else
+		{
+			$classModel = $this->name . 'ViewModel';
+		}
+
+		$this->setClassModel($classModel);
+
 		return $this->classModel;
 	}
 
@@ -133,9 +163,9 @@ class CreationRecipe
 	/**
 	 * @return bool
 	 */
-	public function hasMapper()
+	protected function hasMapper()
 	{
-		if (class_exists($this->classMapper))
+		if (class_exists($this->getClassMapper()))
 		{
 			return true;
 		}
@@ -144,12 +174,11 @@ class CreationRecipe
 	/**
 	 * @return ViewMapperInterface|bool Return false when mapper can not be constructed
 	 */
-	public function getMapper()
+	protected function getMapper()
 	{
 		if ($this->hasMapper())
 		{
 			$mapper = $this->getClassMapper();
-			$model = $this->getModel();
 			return new $mapper($this->getModel(), $this->callable);
 		}
 		return false;
@@ -159,7 +188,7 @@ class CreationRecipe
 	 * @param null|mixed $data
 	 * @return ViewModelInterface
 	 */
-	public function getModel($data = null)
+	protected function getModel($data = null)
 	{
 		$model = $this->getClassModel();
 		return new $model($data);
