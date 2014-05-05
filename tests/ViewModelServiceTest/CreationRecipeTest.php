@@ -12,48 +12,86 @@ use ViewModelService\CreationRecipe;
  */
 class CreationRecipeTest extends TestCase
 {
-
-	public function testInstanceIsOk()
+	public function testThatNotCallableWillBeCallable()
 	{
-		$callable = function () {};
-		$classModel = __NAMESPACE__ . '\\TestAsset\ViewModel\SuperViewModel';
-		$classMapper = __NAMESPACE__ . '\\TestAsset\ViewMapper\SuperViewMapper';;
-		$utt = new CreationRecipe('test', $callable, $classModel, $classMapper);
-
+		$utt = new CreationRecipe('name_1', array(), __NAMESPACE__ . '\\TestAsset\ViewMapper\SuperViewMapper');
 		$this->assertTrue(is_callable($utt->getCallable()));
-		$this->assertInstanceOf('ViewModelService\ViewMapper\ViewMapperInterface', $utt->getMapper(new $classModel, $callable));
-		$this->assertInstanceOf('ViewModelService\ViewModel\ViewModelInterface', $utt->getModel());
-
 	}
 
 	/**
 	 * @expectedException InvalidArgumentException
-	 * @expectedExceptionMessage Invalid argument "string" expected typ of callable
+	 * @expectedExceptionMessage  Class "name_2ViewModel" does not exists
 	 */
-	public function testThrowExceptionWhenNotACallableProvided()
+	public function testShouldThrowInvalidArgumentForNotExistsViewModelClassWithoutNamespace()
 	{
-		$callable = 'string is not a callable';
-		$classModel = __NAMESPACE__ . '\\TestAsset\SuperViewModel';
-		$classMapper = __NAMESPACE__ . '\\TestAsset\SuperViewMapper';;
-		$utt = new CreationRecipe('test', $callable, $classModel, $classMapper);
+		$recipe = new CreationRecipe('name_2', function(){return array();});
+		$recipe->createViewModel();
 	}
 
 	/**
 	 * @expectedException InvalidArgumentException
-	 * @expectedExceptionMessage  Invalid argument "array" expected typ of callable
+	 * @expectedExceptionMessage  Class "ViewModelServiceTest\ViewModel\name_2ViewModel" does not exists
 	 */
-	public function testInvalidArgumentCallableException()
+	public function testShouldThrowInvalidArgumentForNotExistsViewModelClassLockUpClassInGivenNamespace()
 	{
-		$utt = new CreationRecipe('name_1', array(), 'classname');
+		$recipe = new CreationRecipe('name_2', '', __NAMESPACE__);
+		$recipe->createViewModel();
 	}
 
-	/**
-	 * @expectedException InvalidArgumentException
-	 * @expectedExceptionMessage  Class "classname" does not exists
-	 */
-	public function test()
+	public function testCanCreateModelUsingOnlyModelClass()
 	{
-		$utt = new CreationRecipe('name_2', function(){return array();}, 'classname');
+		$data = array(
+				'data1' => 'A',
+				'data2' => 'B',
+				'data3' => 'C',
+				'data4' => 'D',
+				'data5' => 'E',
+		);
+
+		$callable = function() use ($data)
+		{
+			return $data;
+		};
+		$recipe = new CreationRecipe(
+				'Rimma',
+				$callable,
+				'ViewModelServiceTest\TestAsset'
+		);
+
+		$this->assertInstanceOf('ViewModelServiceTest\TestAsset\ViewModel\RimmaViewModel', $recipe->createViewModel());
+
+		$expectation = Array (
+				'att_1' => 'data1A',
+				'att_2' => 'data2B',
+				'att_3' => 'data3C'
+		);
+
+		$this->assertSame($expectation, get_object_vars($recipe->createViewModel()));
+	}
+
+	public function testCanCreateModelWithMapper()
+	{
+		$data = array(
+				'data1' => 'A',
+				'data2' => 'B',
+				'data3' => 'C',
+				'data4' => 'D',
+				'data5' => 'E',
+		);
+
+		$callable = function() use ($data)
+		{
+			return $data;
+		};
+		$recipe = new CreationRecipe(
+				'Super',
+				$callable,
+				'ViewModelServiceTest\TestAsset'
+		);
+
+		$model = $recipe->createViewModel();
+		$this->assertInstanceOf('ViewModelServiceTest\TestAsset\ViewModel\SuperViewModel', $model);
+		$this->assertSame($data, get_object_vars($model));
 	}
 }
 

@@ -111,7 +111,7 @@ class ViewModelRepoTest extends TestCase
 
 	/**
 	 * @expectedException LogicException
-	 * @expectedExceptionMessage Singleton un serializing is invalid approach
+	 * @expectedExceptionMessage Singleton un serializing is an invalid approach
 	 */
 	public function testShouldTrowExceptionAtWakeUp()
 	{
