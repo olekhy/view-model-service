@@ -27,7 +27,7 @@ abstract class AbstractContextualCreate implements ContextualCreateInterface
 	 * @param CreationRecipe $recipe
 	 * @return ViewModelInterface
 	 */
-	public function createViewModel($recipe)
+	public function createViewModel(CreationRecipe $recipe)
 	{
 		$this->recipe = $recipe;
 
