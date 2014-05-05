@@ -37,6 +37,11 @@ class CreationRecipe
 	 */
 	protected $callable;
 
+	/**
+	 * @param $name
+	 * @param $callable
+	 * @param string|bool $namespace
+	 */
 	public function __construct($name, $callable, $namespace = false)
 	{
 		$this->name = $name;
