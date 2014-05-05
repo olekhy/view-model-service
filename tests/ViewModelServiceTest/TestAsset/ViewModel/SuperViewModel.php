@@ -8,7 +8,7 @@ use ViewModelService\ViewModel\ViewModelInterface;
  *
  * @package ViewModelServiceTest\TestAsset
  */
-class TestAssetViewModel implements ViewModelInterface
+class SuperViewModel implements ViewModelInterface
 {
 	public $data1;
 	public $data2;

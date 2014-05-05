@@ -11,9 +11,10 @@ use ViewModelService\ViewModel\ViewModelInterface;
 interface ViewMapperInterface
 {
 	/**
+	 * @param mixed $data
 	 * @return ViewModelInterface
 	 */
-	public function map();
+	public function map($data);
 
 	/**
 	 * @param ViewModelInterface $model
@@ -26,4 +27,14 @@ interface ViewMapperInterface
 	 * @return $this
 	 */
 	public function setDataAwareCallable($callable);
+
+	/**
+	 * @return ViewModelInterface
+	 */
+	public function getViewModelComplete();
+
+	/**
+	 * @return mixed
+	 */
+	public function getDataForMapping();
 }

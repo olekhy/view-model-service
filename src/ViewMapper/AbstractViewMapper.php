@@ -1,6 +1,7 @@
 <?php
 namespace ViewModelService\ViewMapper;
 
+use InvalidArgumentException;
 use ViewModelService\ViewModel\ViewModelInterface;
 
 /**
@@ -11,11 +12,22 @@ use ViewModelService\ViewModel\ViewModelInterface;
 abstract class AbstractViewMapper implements ViewMapperInterface
 {
 	/**
-	 * @var
+	 * @param ViewModelInterface $model
+	 * @param $callable
+	 */
+	public function __construct(ViewModelInterface $model, $callable)
+	{
+		$this->model = $model;
+		$this->setDataAwareCallable($callable);
+	}
+
+	/**
+	 * @var ViewModelInterface
 	 */
 	protected $model;
+
 	/**
-	 * @var
+	 * @var Callable
 	 */
 	protected $dataAware;
 
@@ -33,7 +45,28 @@ abstract class AbstractViewMapper implements ViewMapperInterface
 	 */
 	public function setDataAwareCallable($callable)
 	{
+		if (!is_callable($callable))
+		{
+			throw new InvalidArgumentException('Invalid argument, expected of callable typ');
+		}
 		$this->dataAware = $callable;
 		return $this;
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function getDataForMapping()
+	{
+		$data = $this->dataAware;
+		return $data();
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function getViewModelComplete()
+	{
+		return $this->map($this->getDataForMapping());
 	}
 }

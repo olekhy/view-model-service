@@ -10,15 +10,15 @@ use ViewModelServiceTest\TestAsset\ViewModel\TestAssetViewModel;
  *
  * @package ViewMapperService\TestAsset
  */
-class TestAssetViewMapper extends AbstractViewMapper
+class SuperViewMapper extends AbstractViewMapper
 {
 	/**
+	 * @param mixed $data
+	 * @throws \Exception
 	 * @return TestAssetViewModel
-	 * @throws Exception
 	 */
-	public function map()
+	public function map($data)
 	{
-		$data = call_user_func($this->dataAware);
 		foreach ($this->model as $key => $var)
 		{
 			if (isset($data[$key]))
