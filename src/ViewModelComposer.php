@@ -13,7 +13,7 @@ use ViewModelService\ViewModel\ViewModelInterface;
 class ViewModelComposer
 {
 	/**
-	 * @var string  namespace where need look up for classes
+	 * @var string|bool namespace where need look up for classes or FALSE for off the namespace using
 	 */
 	protected $namespace;
 
