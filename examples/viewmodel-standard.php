@@ -15,7 +15,7 @@ $callable = function()
 	return array('username' => 'Monika', 'email' => 'monika@gmail.com');
 };
 
-$repo->add($callable);
+$repo->addUser($callable);
 
 var_dump($repo->getUser());
 
