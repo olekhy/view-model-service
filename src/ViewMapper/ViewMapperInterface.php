@@ -11,10 +11,10 @@ use ViewModelService\ViewModel\ViewModelInterface;
 interface ViewMapperInterface
 {
 	/**
-	 * @param mixed $data
+	 *
 	 * @return void
 	 */
-	public function map($data);
+	public function map();
 
 	/**
 	 * @param ViewModelInterface $model
