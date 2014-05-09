@@ -34,7 +34,6 @@ class ViewModelRepo
 	 */
 	protected $viewModelComposer;
 
-
 	protected function __construct()
 	{
 	}
@@ -50,7 +49,7 @@ class ViewModelRepo
 	}
 
 	/**
-	 * @return self
+	 * @return static
 	 */
 	public static function getRepo()
 	{
@@ -70,35 +69,31 @@ class ViewModelRepo
 	}
 
 	/**
+	 * Method is proxy to the real execution
+	 *
+	 * [collection]Add|GetViewModelName($arguments[0]...$arguments[1])
+	 *
 	 * @param string $methodName
-	 * @param array  $arguments
-	 * @return ViewModelInterface|$this
-	 * @throws LogicException
+	 * @param array $arguments
 	 * @throws BadMethodCallException
+	 * @return ViewModelInterface|ViewModelInterface[]|string|array  When returned string or array that is for id names of View Models in repo
 	 */
 	public function __call($methodName, $arguments)
 	{
-		list($type, $name) = sscanf($methodName, '%3s%s');
-
-		if (strcasecmp('add', $type) === 0)
+		if (strcasecmp('collection', substr($methodName, 0, 10)) === 0)
 		{
-			$this->attachRecipe($name, $arguments);
-		}
-		elseif (strcasecmp('get', $type) === 0)
-		{
-			$name = isset($arguments[0]) ? $this->getExtendedName($name, $arguments[0]) : $name;
-			return $this->getModel($name);
+			$typeAndNameViewModel = lcfirst(substr($methodName, 10));
+			$realMethodName = 'collection';
 		}
 		else
 		{
-			throw new BadMethodCallException(sprintf(
-					'Please use method %1$s::add<NameOfView>($callable, $optionalPostfix = null) to map data to a view model'
-					. PHP_EOL . 'or %1$s::get<NameOfView>($optionalPostfix = null) to get view model from repo',
-					get_class($this)
-				)
-			);
+			$typeAndNameViewModel = $methodName;
+			$realMethodName = 'doMethodCall';
 		}
-		return $this;
+
+		list($type, $name) = sscanf($typeAndNameViewModel, '%3s%s');
+
+		return $this->$realMethodName($type, $name, $arguments);
 	}
 
 	/**
@@ -110,7 +105,8 @@ class ViewModelRepo
 	{
 		if (!isset($this->recipes[$name]))
 		{
-			throw new InvalidArgumentException('Could not create view model from not exists recipe by name: ' . $name);
+			throw new InvalidArgumentException(sprintf(
+					'Could not create view model from not exists recipe by name: %s, maybe was never added', $name));
 		}
 
 		if (!isset($this->models[$name]))
@@ -130,13 +126,13 @@ class ViewModelRepo
 	protected function getExtendedName($name, $postfix)
 	{
 		$name .= $postfix;
-
 		return $name;
 	}
 
 	/**
-	 * @param string $name
-	 * @param array $arguments
+	 * @param  string $name
+	 * @param  array  $arguments
+	 * @return string Specific name
 	 * @throws LogicException
 	 * @throws UnexpectedValueException
 	 */
@@ -148,8 +144,8 @@ class ViewModelRepo
 
 		if ($numOfArgs == 2)
 		{
-			list($callable, $specificName) = $arguments;
-			$specificName = $this->getExtendedName($name, $specificName);
+			list($callable, $optionalName) = $arguments;
+			$specificName = $this->getExtendedName($name, $optionalName);
 		}
 		elseif($numOfArgs == 1)
 		{
@@ -157,7 +153,8 @@ class ViewModelRepo
 		}
 		else
 		{
-			throw new UnexpectedValueException('Recipe can not be attached because does not known about handling with more than two arguments');
+			throw new UnexpectedValueException(
+					'Recipe can not be attached because does not known about handling with less than one or more than two arguments');
 		}
 
 		if (isset($this->recipes[$specificName]))
@@ -167,6 +164,7 @@ class ViewModelRepo
 
 		$composer = $this->getViewModelComposer();
 		$this->recipes[$specificName] = $composer->getRecipe($name, $callable);
+		return  isset($optionalName) ? $optionalName : $specificName;
 	}
 
 	/**
@@ -189,5 +187,69 @@ class ViewModelRepo
 			$this->viewModelComposer = new ViewModelComposer();
 		}
 		return $this->viewModelComposer;
+	}
+
+	/**
+	 * @param $type
+	 * @param $name
+	 * @param $arguments
+	 * @return $this|ViewModelInterface
+	 * @throws BadMethodCallException
+	 */
+	protected function doMethodCall($type, $name, $arguments)
+	{
+		if (method_exists($this, $type))
+		{
+			return $this->$type($name, $arguments);
+		}
+
+		throw new BadMethodCallException(sprintf(
+				'Please use method %1$s::add<NameOfView>($callable, $optionalPostfix = null) to map data to a view model or %1$s::get<NameOfView>($optionalPostfix = null) to get view model from repo',
+				get_class($this)));
+	}
+
+	/**
+	 * @param $name
+	 * @param $arguments
+	 * @return string
+	 */
+	protected function add($name, $arguments)
+	{
+		return $this->attachRecipe($name, $arguments);
+	}
+
+	/**
+	 * @param $name
+	 * @param $arguments
+	 * @return ViewModelInterface
+	 */
+	protected function get($name, $arguments)
+	{
+		$name = isset($arguments[0]) ? $this->getExtendedName($name, $arguments[0]) : $name;
+		return $this->getModel($name);
+	}
+
+	/**
+	 * @param $type
+	 * @param $name
+	 * @param $arguments
+	 * @throws InvalidArgumentException
+	 * @return array
+	 */
+	protected function collection($type, $name, $arguments)
+	{
+		$return = array();
+		$list = array_shift($arguments);
+
+		if (null === $list)
+		{
+			throw new InvalidArgumentException('Empty data not expected');
+		}
+
+		foreach ($list as $id => $argument)
+		{
+			$return[] = $this->doMethodCall($type, $name, array($argument, $id));
+		}
+		return $return;
 	}
 }
