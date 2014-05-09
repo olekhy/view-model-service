@@ -12,8 +12,7 @@ use ViewModelService\ViewModel\ViewModelInterface;
  *
  * @package ViewModelService
  *
- * @method getExample($optionalPostfix = null)
- * @method ViewModelRepo addExample($callable, $optionalPostfix = null)
+ * Syntax for class methods that called via magic __call() is: @method [return type] [name]([[type] [parameter]<, ...>]) [<description>]
  */
 class ViewModelRepo
 {
