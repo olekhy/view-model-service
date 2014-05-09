@@ -2,8 +2,11 @@
 namespace ViewModelServiceTest;
 
 use PHPUnit_Framework_TestCase as TestCase;
-use ViewModelService\CreationRecipe;
 use ViewModelService\ViewModelComposer;
+use ViewModelServiceTest\TestAsset\ContextA;
+use ViewModelServiceTest\TestAsset\ContextB;
+use ViewModelServiceTest\TestAsset\ContextC;
+use ViewModelServiceTest\TestAsset\ContextCollector;
 
 /**
  * Class ViewModelComposerTest
@@ -13,99 +16,105 @@ use ViewModelService\ViewModelComposer;
 class ViewModelComposerTest extends TestCase
 {
 
-	public function testCanGetRecipeWithNormalCallable()
+
+	public function testCanGetRecipe()
 	{
-		$composer = new ViewModelComposer(array('namespace' =>__NAMESPACE__ . '\\TestAsset'));
-		$callable = function(){return array(1,2,4);};
-		$recipe = $composer->getRecipe('Super', $callable);
-		$this->assertSame($callable, $recipe->getCallable());
+		$data = array(
+				'data1' => 'aaA',
+				'data2' => 'bbbB',
+				'data3' => 'ccccC',
+				'data4' => 'dddddD',
+				'data5' => 'eEe',
+		);
+		$utt = new ViewModelComposer(array('namespace' => __NAMESPACE__ . '\\TestAsset'));
+		$recipe = $utt->getRecipe('Super', $data);
+		$this->assertInstanceOf('ViewModelService\CreationRecipe', $recipe);
 		$this->assertSame('Super', $recipe->getName());
-		$this->assertInstanceOf('ViewModelService\CreationRecipe', $recipe);
-		$this->assertInstanceOf('ViewModelServiceTest\TestAsset\ViewMapper\SuperViewMapper', $recipe->getMapper($recipe->getModel(), $recipe->getCallable()));
-		$this->assertInstanceOf('ViewModelServiceTest\TestAsset\ViewModel\SuperViewModel', $recipe->getModel());
+		$this->assertSame($data, call_user_func($recipe->getCallable()));
+		$this->assertSame('ViewModelServiceTest\TestAsset\ViewMapper\SuperViewMapper',$recipe->getClassMapper());
+		$this->assertSame('ViewModelServiceTest\TestAsset\ViewModel\SuperViewModel',$recipe->getClassModel());
+
+		return $recipe;
 	}
 
-	public function testCanGetRecipeWithNotCallable()
+	/**
+	 * @depends testCanGetRecipe
+	 */
+	public function testCanGetRecipeWithoutNamespace()
 	{
-		$composer = new ViewModelComposer(array('namespace' =>__NAMESPACE__ . '\\TestAsset'));
-		$callable = array(1,2,34); // not a callable
-		$recipe = $composer->getRecipe('Super', $callable);
-		$this->assertTrue(is_callable($recipe->getCallable()));
-		$this->assertSame($callable, call_user_func($recipe->getCallable()));
+		$utt = new ViewModelComposer(array('namespace' => false));
+		$recipe = $utt->getRecipe('MapperForExample', 'string');
+		$this->assertSame('MapperForExampleViewMapper',$recipe->getClassMapper());
 	}
 
-	public function testCanGetRecipeWithEmptyMapper()
+	/**
+	 * @depends testCanGetRecipe
+	 */
+	public function testCanGetRecipeWithSpecificNamespace()
 	{
-		$composer = new ViewModelComposer(array('namespace' =>__NAMESPACE__ . '\\TestAsset'));
-		$callable = function() {return 123;}; // not a callable
-		$recipe = $composer->getRecipe('Rimma', $callable);
-		$this->assertInstanceOf('ViewModelService\CreationRecipe', $recipe);
+		$utt = new ViewModelComposer(array('namespace' => 'NAME_SPACE'));
+		$recipe = $utt->getRecipe('MapperForExample', 'string');
+		$this->assertSame('NAME_SPACE\ViewMapper\MapperForExampleViewMapper',$recipe->getClassMapper());
 	}
 
-	public function testCanComposeWithMapper()
+	/**
+	 * @depends testCanGetRecipe
+	 */
+	public function testCanGetRecipeWithDefaultNamespace()
 	{
-		$composer = new ViewModelComposer();
-
-		$data = array(
-			'data1' => 'A',
-			'data2' => 'B',
-			'data3' => 'C',
-			'data4' => 'D',
-			'data5' => 'E',
-		);
-
-		$callable = function() use ($data)
-		{
-			return $data;
-		};
-		$recipe = new CreationRecipe(
-				'name_1',
-				$callable,
-				'ViewModelServiceTest\TestAsset\ViewModel\SuperViewModel',
-				'ViewModelServiceTest\TestAsset\ViewMapper\SuperViewMapper'
-		);
-
-
-		$model = $composer->composeFromRecipe($recipe);
-
-		$this->assertInstanceOf('ViewModelServiceTest\TestAsset\ViewModel\SuperViewModel', $model);
-		$this->assertSame($data, get_object_vars($model));
+		$utt = new ViewModelComposer();
+		$recipe = $utt->getRecipe('MapperForExample', 'string');
+		$this->assertSame('ViewModelService\ViewMapper\MapperForExampleViewMapper',$recipe->getClassMapper());
 	}
 
-	public function testCanComposeUsingOnlyModelClass()
+	/**
+	 * @param $recipe
+	 * @depends testCanGetRecipe
+	 */
+	public function testCanComposeViewModel($recipe)
 	{
-		$composer = new ViewModelComposer();
-
-		$data = array(
-			'data1' => 'A',
-			'data2' => 'B',
-			'data3' => 'C',
-			'data4' => 'D',
-			'data5' => 'E',
+		$utt = new ViewModelComposer();
+		$model = $utt->composeFromRecipe($recipe);
+		$expectation = array(
+				'data1' => 'aaA',
+				'data2' => 'bbbB',
+				'data3' => 'ccccC',
+				'data4' => 'dddddD',
+				'data5' => 'eEe',
 		);
-
-		$callable = function() use ($data)
-		{
-			return $data;
-		};
-		$recipe = new CreationRecipe(
-				'name_2',
-				$callable,
-				'ViewModelServiceTest\TestAsset\ViewModel\RimmaViewModel'
-		);
-
-
-		$model = $composer->composeFromRecipe($recipe);
-
-		$this->assertInstanceOf('ViewModelServiceTest\TestAsset\ViewModel\RimmaViewModel', $model);
-
-		$expectation = Array (
-			'att_1' => 'data1A',
-			'att_2' => 'data2B',
-			'att_3' => 'data3C'
-		);
-
 		$this->assertSame($expectation, get_object_vars($model));
 	}
+
+	/**
+	 * @param $recipe
+	 * @depends testCanGetRecipe
+	 */
+	public function testCanComposeViewModelWithinContext($recipe)
+	{
+		$collector = new ContextCollector();
+		$options = array('context' => array(
+			new ContextA($collector),
+			new ContextB($collector),
+			new ContextC($collector),
+		));
+		$utt = new ViewModelComposer($options);
+		$model = $utt->composeFromRecipe($recipe);
+
+		$expectation = array (
+				0 => 'ViewModelServiceTest\\TestAsset\\ContextA::setUpContext',
+				1 => 'ViewModelServiceTest\\TestAsset\\ContextB::setUpContext',
+				2 => 'ViewModelServiceTest\\TestAsset\\ContextC::setUpContext',
+				3 => 'ViewModelServiceTest\\TestAsset\\ContextC::closeContext',
+				4 => 'ViewModelServiceTest\\TestAsset\\ContextB::closeContext',
+				5 => 'ViewModelServiceTest\\TestAsset\\ContextA::closeContext',
+		);
+		$this->assertSame($expectation, $collector->getCollection());
+	}
+
+
+
+
+
+
 
 }

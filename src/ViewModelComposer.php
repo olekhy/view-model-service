@@ -1,6 +1,8 @@
 <?php
 namespace ViewModelService;
 
+use InvalidArgumentException;
+use LogicException;
 use ViewModelService\ViewModel\ViewModelInterface;
 
 /**
@@ -11,45 +13,45 @@ use ViewModelService\ViewModel\ViewModelInterface;
 class ViewModelComposer
 {
 	/**
-	 * @var string  namespace where need look up for classes
+	 * @var string|bool namespace where need look up for classes or FALSE for off the namespace using
 	 */
-	protected $ns;
+	protected $namespace;
 
-	public function __construct($options = null)
+	/**
+	 * @var ContextualCreateInterface[]
+	 */
+	protected $context;
+
+	/**
+	 * @var bool
+	 */
+	protected $hasContext = false;
+
+	public function __construct(array $options = null)
 	{
 		if (isset($options['namespace']))
 		{
-			$this->ns = $options['namespace'];
+			$this->setNamespace($options['namespace']);
 		}
 		else
 		{
-			$this->ns = __NAMESPACE__;
+			$this->namespace = __NAMESPACE__;
+		}
+
+		if (isset($options['context']))
+		{
+			$this->setContext($options['context']);
 		}
 	}
 
 	/**
-	 * @param $receptionId
+	 * @param $recipeId
 	 * @param $callable
 	 * @return CreationRecipe
 	 */
-	public function getRecipe($receptionId, $callable)
+	public function getRecipe($recipeId, $callable)
 	{
-		if (!is_callable($callable))
-		{
-			$callable = function() use ($callable)
-			{
-				return $callable;
-			};
-		}
-
-		$classNameViewModel = (false !== $this->ns ? $this->ns . '\\ViewModel\\' : '') . $receptionId . 'ViewModel';
-		$classNameViewModelMapper = (false !== $this->ns ? $this->ns . '\\ViewMapper\\' : '') . $receptionId . 'ViewMapper';
-
-		if (!class_exists($classNameViewModelMapper))
-		{
-			$classNameViewModelMapper = null;
-		}
-		return new CreationRecipe($receptionId, $callable, $classNameViewModel, $classNameViewModelMapper);
+		return new CreationRecipe($recipeId, $callable, $this->namespace);
 	}
 
 	/**
@@ -58,15 +60,71 @@ class ViewModelComposer
 	 */
 	public function composeFromRecipe(CreationRecipe $recipe)
 	{
-		if ($recipe->hasMapper())
+		if ($this->hasContext())
 		{
-			$mapper = $recipe->getMapper($recipe->getModel(), $recipe->getCallable());
-			return $mapper->getViewModelComplete();
+			$context = $this->contextChaining($this->context);
+			return $context->createViewModel($recipe);
 		}
 		else
 		{
-			$data = $recipe->getCallable();
-			return $recipe->getModel($data());
+			return $recipe->createViewModel();
 		}
 	}
+
+	/**
+	 * @param string $namespace
+	 * @return $this
+	 */
+	protected function setNamespace($namespace)
+	{
+		if (null !== $namespace)
+		{
+			$this->namespace = $namespace;
+		}
+		return $this;
+	}
+
+	/**
+	 * @param ContextualCreateInterface[] $context
+	 * @return $this
+	 * @throws LogicException
+	 */
+	protected function setContext($context)
+	{
+		if (!is_array($context))
+		{
+			$context = array($context);
+		}
+		$this->context = $context;
+
+		return $this;
+	}
+
+	/**
+	 * @param ContextualCreateInterface[] $context
+	 * @return ContextualCreateInterface
+	 * @throws LogicException
+	 * @throws InvalidArgumentException
+	 */
+	protected function contextChaining(array $context)
+	{
+		foreach ($context as $current)
+		{
+			if (false !== next($context))
+			{
+				$current->appendChainedContext(current($context));
+			}
+		}
+
+		return array_shift($context);
+	}
+
+	/**
+	 * @return bool
+	 */
+	protected function hasContext()
+	{
+		return !empty($this->context);
+	}
+
 }
