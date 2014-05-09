@@ -67,7 +67,7 @@ abstract class AbstractViewMapper implements ViewMapperInterface
 	 */
 	public function getViewModelComplete()
 	{
-		$this->map($this->getDataForMapping());
+		$this->map();
 		return $this->model;
 	}
 }

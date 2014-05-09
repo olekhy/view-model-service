@@ -3,22 +3,23 @@ namespace ViewModelServiceTest\TestAsset\ViewMapper;
 
 use Exception;
 use ViewModelService\ViewMapper\AbstractViewMapper;
+use ViewModelServiceTest\TestAsset\ViewModel\SuperViewModel;
 use ViewModelServiceTest\TestAsset\ViewModel\TestAssetViewModel;
 
 /**
- * Class TestAssetViewMapper
+ * Class SuperViewMapper
  *
  * @package ViewMapperService\TestAsset
  */
 class SuperViewMapper extends AbstractViewMapper
 {
 	/**
-	 * @param mixed $data
-	 * @throws \Exception
-	 * @return TestAssetViewModel
+	 * @throws Exception
+	 * @return SuperViewModel
 	 */
-	public function map($data)
+	public function map()
 	{
+		$data = $this->getDataForMapping();
 		foreach ($this->model as $key => $var)
 		{
 			if (isset($data[$key]))
