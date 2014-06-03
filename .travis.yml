@@ -3,6 +3,7 @@ language: php
 php:
   - 5.3.3
   - 5.3.27
+  - 5.3.28
 
 before_script:
   - composer selfupdate -n
