@@ -10,7 +10,7 @@ before_script:
   - composer update --prefer-dist --dev
 
 script:
-  - ./vendor/bin/phpunit --coverage-clover ./build/logs/clover.xml
+  - ./vendor/bin/phpunit --strict --coverage-clover ./build/logs/clover.xml
   # - ./vendor/bin/phpcs --standard=PSR2 ./src/ ./tests/
   - php vendor/bin/phpunit --verbose --coverage-clover=coverage.clover
   - wget "https://scrutinizer-ci.com/ocular.phar"
