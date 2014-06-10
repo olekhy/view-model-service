@@ -252,8 +252,8 @@ class ViewModelRepo
 		// collectionGetTest()
 		// collectionAddTest([1,2,3,4], 'mySpecific')
 		// collectionGetTest('mySpecific')
-
-    $originalArgs = func_get_args()[2];
+		$backupArgs = func_get_args();
+    $originalArgs = $backupArgs[2];
 		$isPickUp = null;
 		if (!isset($originalArgs[0]) || is_string($originalArgs[0]))
 		{
