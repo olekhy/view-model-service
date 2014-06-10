@@ -33,6 +33,11 @@ class ViewModelRepo
 	 */
 	protected $viewModelComposer;
 
+	/**
+	 * @var array of ids of $this->recipes by view model name
+	 */
+	protected $collectionsOfIds;
+
 	protected function __construct()
 	{
 	}
@@ -60,7 +65,7 @@ class ViewModelRepo
 	}
 
 	/**
-	 *
+	 * The purpose is reset instance for unit testing fo example
 	 */
 	public static function resetRepo()
 	{
@@ -152,7 +157,7 @@ class ViewModelRepo
 		}
 		else
 		{
-			throw new UnexpectedValueException(
+			throw new InvalidArgumentException(
 					'Recipe can not be attached because does not known about handling with less than one or more than two arguments');
 		}
 
@@ -203,8 +208,11 @@ class ViewModelRepo
 		}
 
 		throw new BadMethodCallException(sprintf(
-				'Please use method %1$s::add<NameOfView>($callable, $optionalPostfix = null) to map data to a view model or %1$s::get<NameOfView>($optionalPostfix = null) to get view model from repo',
-				get_class($this)));
+				'Invalid method called "%1$s::%2$s%3$s()", for adding or getting ViewModel(s) only allowed "add<ViewModel>()" or "get<ViewModel>()"',
+				get_class($this),
+				$type,
+				$name)
+		);
 	}
 
 	/**
@@ -239,16 +247,118 @@ class ViewModelRepo
 	{
 		$return = array();
 		$list = array_shift($arguments);
+		$nameAddOn = array_pop($arguments);
+		// collectionAddTest([1,2,3,4])
+		// collectionGetTest()
+		// collectionAddTest([1,2,3,4], 'mySpecific')
+		// collectionGetTest('mySpecific')
 
-		if (null === $list)
+    $originalArgs = func_get_args()[2];
+		$isPickUp = null;
+		if (!isset($originalArgs[0]) || is_string($originalArgs[0]))
 		{
-			throw new InvalidArgumentException('Empty data not expected');
+			$isPickUp = true;
+			$nameAddOn = isset($originalArgs[0]) ? $originalArgs[0] : '';
+			$list = $this->collectionsOfIds[$name . $nameAddOn];
+		}
+
+		if (!is_array($list))
+		{
+			throw new InvalidArgumentException(sprintf(
+							'Sorry unexpected argument given "%s", expected an array that each element will be used for building a ViewModel named "%s" in the collection',
+							var_export($list, true),
+							$name
+					)
+			);
 		}
 
 		foreach ($list as $id => $argument)
 		{
-			$return[] = $this->doMethodCall($type, $name, array($argument, $id));
+			$repoIdOrModel = $this->doMethodCall($type, $name, array($argument, $id));
+
+			if (null === $isPickUp && !$repoIdOrModel instanceof ViewModelInterface)
+			{
+				$this->collectionsOfIds[$name . $nameAddOn][] = $repoIdOrModel;
+			}
+			else
+			{
+				$return[] = $repoIdOrModel;
+			}
 		}
 		return $return;
 	}
+
+	/**
+	 * Register view model and corresponding data in repository
+	 *
+	 * Usage example:
+	 * <code>
+	 *
+	 *     $data = ['hello', 'world']
+	 *
+	 *     $repo->registerModel('Breadcrumb', $data)
+	 *
+	 *     $model = $repo->getBreadcrumb() // this is a magically method call used __call('get', ['Breadcrumb', ['hello', 'world']])
+	 *
+	 *     // $model is an instance of BreadcrumbViewModel
+	 *
+	 *     // with specific id key
+	 *
+	 *     $repo->registerModel('Breadcrumb', $data, 'mySpecific')
+	 *
+	 *     $model = $repo->getBreadcrumb('mySpecific')
+	 *
+	 *     // $model is an instance of BreadcrumbViewModel
+	 *
+	 *
+	 * </code>
+	 *
+	 * @param string         $name                Name of ViewModel to be register
+	 * @param mixed|callable $mixedData           Data that fill the ViewModel
+	 * @param null|string    $optionalNamePostfix Postfix string to indicate the specific ViewModel in the repo
+	 * @return string                             Returns string as key name of ViewModel in the repository container
+	 */
+	public function registerModel($name, $mixedData, $optionalNamePostfix = null)
+	{
+		return $this->add($name, array($mixedData, $optionalNamePostfix));
+	}
+
+	/**
+	 * Register collection of View Models and corresponding data in repository
+	 *
+	 * Create an collection of view models for each $data array element
+	 * and store array of view model names (ids) in property with $name as the key.
+	 *
+	 * Example usage:
+	 * <code>
+	 *
+	 *     $breadcrumbData = [ [ 'link' => '/', 'name' => 'Homepage' ], [ 'link' => '/page/post', 'name' => 'post' ] ]
+	 *
+	 *     $repo->registerModelsCollection('Breadcrumb', $breadcrumbData);  // here we register two BreadcrumbViewModel in repository
+	 *
+	 *     $breadcrumbViewModels = $repo->collectionGetBreadcrumb(); // here is the magically method calling that uses __call()
+	 *
+	 *     // or with a specific name when this one was opted at collection register
+	 *
+	 *     $repo->registerModelsCollection('Breadcrumb', $breadcrumbData, 'mySpecificName');  // here we register two BreadcrumbViewModel in repository
+	 *
+	 *
+	 *     $breadcrumbViewModels = $repo->collectionGetBreadcrumb('mySpecificName');
+	 *
+	 *     //in both cases $breadcrumbViewModels contains an array BreadcrumbViewModel[]
+	 *
+	 * </code>
+	 *
+	 *
+	 * @param string      $name                   Name of ViewModel class which is used in collection
+	 * @param array       $data                   Data array where each element will applied to corresponding View Model instance in collection
+	 * @param null|string $optionalCollectionName Name that used to override default name ($name) of the array contains view model ids
+	 * @return array
+	 */
+	public function registerModelsCollection($name, array $data, $optionalCollectionName = null)
+	{
+		return $this->collection('add', $name, array($data, $optionalCollectionName));
+	}
+
 }
+
