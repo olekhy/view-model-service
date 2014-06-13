@@ -40,7 +40,7 @@ class ViewModelComposerTest extends TestCase
 	/**
 	 * @depends testCanGetRecipe
 	 */
-	public function testCanGetRecipeWithoutNamespace()
+	public function test_Can_Get_Recipe_Without_Namespace()
 	{
 		$utt = new ViewModelComposer(array('namespace' => false));
 		$recipe = $utt->getRecipe('MapperForExample', 'string');
@@ -50,7 +50,7 @@ class ViewModelComposerTest extends TestCase
 	/**
 	 * @depends testCanGetRecipe
 	 */
-	public function testCanGetRecipeWithSpecificNamespace()
+	public function test_Can_Get_Recipe_With_Specific_Namespace()
 	{
 		$utt = new ViewModelComposer(array('namespace' => 'NAME_SPACE'));
 		$recipe = $utt->getRecipe('MapperForExample', 'string');
@@ -60,7 +60,7 @@ class ViewModelComposerTest extends TestCase
 	/**
 	 * @depends testCanGetRecipe
 	 */
-	public function testCanGetRecipeWithDefaultNamespace()
+	public function test_Can_Get_Recipe_With_Default_Namespace()
 	{
 		$utt = new ViewModelComposer();
 		$recipe = $utt->getRecipe('MapperForExample', 'string');
@@ -71,7 +71,7 @@ class ViewModelComposerTest extends TestCase
 	 * @param $recipe
 	 * @depends testCanGetRecipe
 	 */
-	public function testCanComposeViewModel($recipe)
+	public function test_Can_Compose_View_Model($recipe)
 	{
 		$utt = new ViewModelComposer();
 		$model = $utt->composeFromRecipe($recipe);
@@ -89,7 +89,7 @@ class ViewModelComposerTest extends TestCase
 	 * @param $recipe
 	 * @depends testCanGetRecipe
 	 */
-	public function testCanComposeViewModelWithinContext($recipe)
+	public function test_Can_Compose_View_Model_Within_Context($recipe)
 	{
 		$collector = new ContextCollector();
 		$options = array('context' => array(
