@@ -161,14 +161,27 @@ class ViewModelRepo
 					'Recipe can not be attached because does not known about handling with less than one or more than two arguments');
 		}
 
-		if (isset($this->recipes[$specificName]))
+		if (!isset($this->recipes[$specificName]))
 		{
-			throw new LogicException(sprintf('You try to override already exists recipe "%s"', $specificName));
+			$composer = $this->getViewModelComposer();
+			$this->recipes[$specificName] = $composer->getRecipe($name, $callable);
+			return  isset($optionalName) ? $optionalName : $specificName;
 		}
 
-		$composer = $this->getViewModelComposer();
-		$this->recipes[$specificName] = $composer->getRecipe($name, $callable);
-		return  isset($optionalName) ? $optionalName : $specificName;
+		if (isset($this->recipes[$specificName]) && isset($optionalName))
+		{
+			throw new LogicException(sprintf('You try to override already registered recipe named "%s"', $specificName));
+		}
+
+		if (isset($this->recipes[$specificName]) && !isset($optionalName))
+		{
+			$composer = $this->getViewModelComposer();
+			$recipe = $composer->getRecipe($name, $callable);
+			$hash = spl_object_hash($recipe);
+			$this->recipes[$specificName . $hash] = $recipe;
+			return $hash;
+		}
+
 	}
 
 	/**
@@ -274,7 +287,7 @@ class ViewModelRepo
 
 		foreach ($list as $id => $argument)
 		{
-			$repoIdOrModel = $this->doMethodCall($type, $name, array($argument, $id));
+			$repoIdOrModel = $this->doMethodCall($type, $name, array($argument, $id . $nameAddOn));
 
 			if (null === $isPickUp && !$repoIdOrModel instanceof ViewModelInterface)
 			{
@@ -320,7 +333,7 @@ class ViewModelRepo
 	 */
 	public function registerModel($name, $mixedData, $optionalNamePostfix = null)
 	{
-		return $this->add($name, array($mixedData, $optionalNamePostfix));
+		return $this->attachRecipe($name, array($mixedData, $optionalNamePostfix));
 	}
 
 	/**
