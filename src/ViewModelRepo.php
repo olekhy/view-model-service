@@ -4,7 +4,6 @@ namespace ViewModelService;
 use BadMethodCallException;
 use InvalidArgumentException;
 use LogicException;
-use UnexpectedValueException;
 use ViewModelService\ViewModel\ViewModelInterface;
 
 /**
@@ -36,7 +35,7 @@ class ViewModelRepo
 	/**
 	 * @var array of ids of $this->recipes by view model name
 	 */
-	protected $collectionsOfIds;
+	protected $collectionsIds;
 
 	protected function __construct()
 	{
@@ -134,55 +133,42 @@ class ViewModelRepo
 	}
 
 	/**
-	 * @param  string $name
-	 * @param  array  $arguments
-	 * @return string Specific name
+	 * @param CreationRecipe $recipe
+	 * @param string         $specificName
+	 * @param string|null    $optionalName
 	 * @throws LogicException
-	 * @throws UnexpectedValueException
+	 * @return string Name in repo
 	 */
-	protected function attachRecipe($name, array $arguments)
+	protected function attachRecipe(CreationRecipe $recipe, $specificName, $optionalName = null)
 	{
-		$specificName = $name;
-		$callable = null;
-		$numOfArgs = count($arguments);
-
-		if ($numOfArgs == 2)
-		{
-			list($callable, $optionalName) = $arguments;
-			$specificName = $this->getExtendedName($name, $optionalName);
-		}
-		elseif($numOfArgs == 1)
-		{
-			$callable = array_shift($arguments);
-		}
-		else
-		{
-			throw new InvalidArgumentException(
-					'Recipe can not be attached because does not known about handling with less than one or more than two arguments');
-		}
-
 		if (!isset($this->recipes[$specificName]))
 		{
-			$composer = $this->getViewModelComposer();
-			$this->recipes[$specificName] = $composer->getRecipe($name, $callable);
-			return  isset($optionalName) ? $optionalName : $specificName;
+			$this->recipes[$specificName] = $recipe;
+			//return  isset($optionalName) ? $optionalName : $specificName;
+			return $specificName;
 		}
 
-		if (isset($this->recipes[$specificName]) && isset($optionalName))
+		if (!isset($optionalName))
 		{
-			throw new LogicException(sprintf('You try to override already registered recipe named "%s"', $specificName));
-		}
-
-		if (isset($this->recipes[$specificName]) && !isset($optionalName))
-		{
-			$composer = $this->getViewModelComposer();
-			$recipe = $composer->getRecipe($name, $callable);
 			$hash = spl_object_hash($recipe);
-			$this->recipes[$specificName . $hash] = $recipe;
-			return $hash;
+			$specificName = $specificName . $hash;
+			$this->recipes[$specificName] = $recipe;
+			return $specificName;
 		}
 
-	}
+		throw new LogicException(sprintf('Recipe "%s"  with optional name "%s" is already registered', $recipe->getName(), $optionalName));
+		}
+
+	/**
+	 * @param string $name
+	 * @param mixed $callable
+	 * @return CreationRecipe
+	 */
+	protected function getRecipe($name, $callable)
+		{
+			$composer = $this->getViewModelComposer();
+		return $composer->getRecipe($name, $callable);
+		}
 
 	/**
 	 * @param ViewModelComposer $viewModelComposer
@@ -231,11 +217,31 @@ class ViewModelRepo
 	/**
 	 * @param $name
 	 * @param $arguments
+	 * @throws InvalidArgumentException
 	 * @return string
 	 */
 	protected function add($name, $arguments)
 	{
-		return $this->attachRecipe($name, $arguments);
+		$specificName = $name;
+		$callable = null;
+		$numOfArgs = count($arguments);
+		$optionalName = null;
+		if ($numOfArgs == 2)
+		{
+			list($callable, $optionalName) = $arguments;
+			$specificName = $this->getExtendedName($name, $optionalName);
+	    }
+		elseif($numOfArgs == 1)
+		{
+			$callable = array_shift($arguments);
+		}
+		else
+		{
+			throw new InvalidArgumentException(
+					'Recipe can not be attached because does not known about handling with less than one or more than two arguments');
+		}
+		$recipe = $this->getRecipe($name, $callable);
+		return $this->attachRecipe($recipe, $specificName, $optionalName);
 	}
 
 	/**
@@ -258,45 +264,62 @@ class ViewModelRepo
 	 */
 	protected function collection($type, $name, $arguments)
 	{
+
 		$return = array();
 		$list = array_shift($arguments);
 		$nameAddOn = array_pop($arguments);
-		// collectionAddTest([1,2,3,4])
-		// collectionGetTest()
-		// collectionAddTest([1,2,3,4], 'mySpecific')
-		// collectionGetTest('mySpecific')
 		$backupArgs = func_get_args();
     $originalArgs = $backupArgs[2];
 		$isPickUp = null;
-		if (!isset($originalArgs[0]) || is_string($originalArgs[0]))
+
+		$collectionId = $name . $nameAddOn . 'collection';
+
+		if (!isset($originalArgs[0]) || is_scalar($originalArgs[0]))
 		{
 			$isPickUp = true;
 			$nameAddOn = isset($originalArgs[0]) ? $originalArgs[0] : '';
-			$list = $this->collectionsOfIds[$name . $nameAddOn];
+			$collectionId = $name . $nameAddOn . 'collection';
+			$list = (isset($this->collectionsIds[$collectionId]) ? $this->collectionsIds[$collectionId] : array());
 		}
 
 		if (!is_array($list))
 		{
 			throw new InvalidArgumentException(sprintf(
-							'Sorry unexpected argument given "%s", expected an array that each element will be used for building a ViewModel named "%s" in the collection',
+							'Sorry unexpected argument given "%s", expected an array where each element will be used for building a ViewModel named "%s" in the collection',
 							var_export($list, true),
 							$name
 					)
 			);
 		}
-
-		foreach ($list as $id => $argument)
+		if (isset($this->collectionsIds[$collectionId]))
 		{
-			$repoIdOrModel = $this->doMethodCall($type, $name, array($argument, $id . $nameAddOn));
+			if (isset($nameAddOn) && !$isPickUp)
+			{
+				throw new LogicException(sprintf('Collection "%s" with optional name "%s" already registered', $name, $nameAddOn));
+			}
+			$collectionId .= count($this->collectionsIds);
+		}
+
+		foreach ($list as $argument)
+		{
+
+			if ($isPickUp)
+			{
+
+				$argument = substr($argument, strlen($name));
+			}
+			$repoIdOrModel = $this->doMethodCall($type, $name, array($argument));
 
 			if (null === $isPickUp && !$repoIdOrModel instanceof ViewModelInterface)
 			{
-				$this->collectionsOfIds[$name . $nameAddOn][] = $repoIdOrModel;
+				$this->collectionsIds[$collectionId][] = $repoIdOrModel;
 			}
-			else
-			{
+
 				$return[] = $repoIdOrModel;
 			}
+		if (null === $isPickUp)
+		{
+			$return = $collectionId;
 		}
 		return $return;
 	}
@@ -333,7 +356,7 @@ class ViewModelRepo
 	 */
 	public function registerModel($name, $mixedData, $optionalNamePostfix = null)
 	{
-		return $this->attachRecipe($name, array($mixedData, $optionalNamePostfix));
+		return $this->add($name, array($mixedData, $optionalNamePostfix));
 	}
 
 	/**
