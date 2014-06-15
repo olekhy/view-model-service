@@ -13,12 +13,14 @@ use ViewModelServiceTest\TestAsset\ViewModel\SuperViewModel;
  * @package ViewModelServiceTest\TestAsset
  *
  * - ! - View Model Register
- * @method string addFoo(mixed $data)
- * @method string addSuper(mixed $array)
+ * @method string addFoo(mixed $data, $optionalName = null)
+ * @method string addSuper(mixed $data, $optionalName = null)
+ * @method string addRimma(mixed $data, $optionalName = null)
  *
- * @method FooViewModel getFoo($optionalPostfix = null)
+ * @method FooViewModel   getFoo($optionalPostfix = null)
  * @method SuperViewModel getSuper($optionalPostfix = null)
  * @method RimmaViewModel getRimma($optionalPostfix = null)
+ *
  *
  * - ! - Collections register
  *

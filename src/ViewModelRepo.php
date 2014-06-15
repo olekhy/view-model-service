@@ -4,6 +4,8 @@ namespace ViewModelService;
 use BadMethodCallException;
 use InvalidArgumentException;
 use LogicException;
+use SebastianBergmann\Exporter\Exception;
+use ViewModelService\Exception\CallUndefCollectionException;
 use ViewModelService\ViewModel\ViewModelInterface;
 
 /**
@@ -36,6 +38,10 @@ class ViewModelRepo
 	 * @var array of ids of $this->recipes by view model name
 	 */
 	protected $collectionsIds;
+	/**
+	 * @var bool status when add/get a collection
+	 */
+	private $inCollection;
 
 	protected function __construct()
 	{
@@ -109,7 +115,8 @@ class ViewModelRepo
 		if (!isset($this->recipes[$name]))
 		{
 			throw new InvalidArgumentException(sprintf(
-					'Could not create view model from not exists recipe by name: %s, maybe was never added', $name));
+					'Could not create view model from not exists recipe by name: %s, maybe was never added', $name)
+			);
 		}
 
 		if (!isset($this->models[$name]))
@@ -141,14 +148,15 @@ class ViewModelRepo
 	 */
 	protected function attachRecipe(CreationRecipe $recipe, $specificName, $optionalName = null)
 	{
-		if (!isset($this->recipes[$specificName]))
+
+		if (true !== $this->inCollection &&  !isset($this->recipes[$specificName]))
 		{
 			$this->recipes[$specificName] = $recipe;
-			//return  isset($optionalName) ? $optionalName : $specificName;
 			return $specificName;
+			//return  isset($optionalName) ? $optionalName : $specificName;
 		}
 
-		if (!isset($optionalName))
+		if (!isset($optionalName) || true === $this->inCollection)
 		{
 			$hash = spl_object_hash($recipe);
 			$specificName = $specificName . $hash;
@@ -157,7 +165,7 @@ class ViewModelRepo
 		}
 
 		throw new LogicException(sprintf('Recipe "%s"  with optional name "%s" is already registered', $recipe->getName(), $optionalName));
-		}
+	}
 
 	/**
 	 * @param string $name
@@ -167,7 +175,7 @@ class ViewModelRepo
 	protected function getRecipe($name, $callable)
 		{
 			$composer = $this->getViewModelComposer();
-		return $composer->getRecipe($name, $callable);
+			return $composer->getRecipe($name, $callable);
 		}
 
 	/**
@@ -251,7 +259,17 @@ class ViewModelRepo
 	 */
 	protected function get($name, $arguments)
 	{
-		$name = isset($arguments[0]) ? $this->getExtendedName($name, $arguments[0]) : $name;
+		if (isset($arguments[0]))
+		{
+			if (0 === strpos($arguments[0], $name))
+			{
+				$name = $arguments[0];
+			}
+			else
+			{
+				$name = $this->getExtendedName($name, $arguments[0]);
+			}
+		}
 		return $this->getModel($name);
 	}
 
@@ -259,69 +277,47 @@ class ViewModelRepo
 	 * @param $type
 	 * @param $name
 	 * @param $arguments
-	 * @throws InvalidArgumentException
+	 * @throws CallUndefCollectionException
 	 * @return array
 	 */
 	protected function collection($type, $name, $arguments)
 	{
 
-		$return = array();
+		$backupArgs = $arguments;
 		$list = array_shift($arguments);
 		$nameAddOn = array_pop($arguments);
-		$backupArgs = func_get_args();
-    $originalArgs = $backupArgs[2];
-		$isPickUp = null;
+		$isPickUp = false;
 
-		$collectionId = $name . $nameAddOn . 'collection';
+		$collectionId = $this->makeCollectionId($name, $nameAddOn);
 
-		if (!isset($originalArgs[0]) || is_scalar($originalArgs[0]))
+		if (!isset($backupArgs[0]) || is_scalar($backupArgs[0]))
 		{
 			$isPickUp = true;
-			$nameAddOn = isset($originalArgs[0]) ? $originalArgs[0] : '';
-			$collectionId = $name . $nameAddOn . 'collection';
+			$nameAddOn = isset($backupArgs[0]) ? $backupArgs[0] : '';
+
+			if (isset($this->collectionsIds[$nameAddOn]))
+			{
+				$collectionId = $nameAddOn;
+			}
+			else
+			{
+				$collectionId = $this->makeCollectionId($name, $nameAddOn);
+			}
+
+			if (!isset($this->collectionsIds[$collectionId]))
+			{
+				throw new CallUndefCollectionException(sprintf('Can not "%s" an undefined collection "%s"', $type, $collectionId));
+			}
 			$list = (isset($this->collectionsIds[$collectionId]) ? $this->collectionsIds[$collectionId] : array());
 		}
 
-		if (!is_array($list))
-		{
-			throw new InvalidArgumentException(sprintf(
-							'Sorry unexpected argument given "%s", expected an array where each element will be used for building a ViewModel named "%s" in the collection',
-							var_export($list, true),
-							$name
-					)
-			);
-		}
+
 		if (isset($this->collectionsIds[$collectionId]))
 		{
-			if (isset($nameAddOn) && !$isPickUp)
-			{
-				throw new LogicException(sprintf('Collection "%s" with optional name "%s" already registered', $name, $nameAddOn));
-			}
-			$collectionId .= count($this->collectionsIds);
+			$collectionId = $this->makeNewCollectionId($name, $collectionId, $isPickUp, $nameAddOn);
 		}
 
-		foreach ($list as $argument)
-		{
-
-			if ($isPickUp)
-			{
-
-				$argument = substr($argument, strlen($name));
-			}
-			$repoIdOrModel = $this->doMethodCall($type, $name, array($argument));
-
-			if (null === $isPickUp && !$repoIdOrModel instanceof ViewModelInterface)
-			{
-				$this->collectionsIds[$collectionId][] = $repoIdOrModel;
-			}
-
-				$return[] = $repoIdOrModel;
-			}
-		if (null === $isPickUp)
-		{
-			$return = $collectionId;
-		}
-		return $return;
+		return $this->handleCollectionElementsByType($list, $type, $name, $collectionId, $isPickUp);
 	}
 
 	/**
@@ -360,6 +356,55 @@ class ViewModelRepo
 	}
 
 	/**
+	 * @param $collection
+	 * @param $type
+	 * @param $name
+	 * @param $collectionId
+	 * @param $isPickUp
+	 * @throws InvalidArgumentException
+	 * @return array
+	 */
+	protected function handleCollectionElementsByType($collection, $type, $name, $collectionId, $isPickUp)
+	{
+		if (!is_array($collection))
+		{
+			throw new InvalidArgumentException(sprintf(
+							'Unexpected argument given "%s", expected an array where each element used for building a ViewModel named "%s" for the collection',
+							var_export($collection, true),
+							$name
+					)
+			);
+		}
+
+		$return = array();
+		$this->inCollection = true;
+		foreach ($collection as $argument)
+		{
+
+			if (true === $isPickUp)
+			{
+				$argument = substr($argument, strlen($name));
+			}
+
+			$repoIdOrModel = $this->doMethodCall($type, $name, array($argument));
+
+			if (!$isPickUp && !$repoIdOrModel instanceof ViewModelInterface)
+			{
+				$this->collectionsIds[$collectionId][] = $repoIdOrModel;
+			}
+
+			$return[] = $repoIdOrModel;
+		}
+		$this->inCollection = false;
+		if (!$isPickUp)
+		{
+			$return = $collectionId;
+		}
+
+		return $return;
+	}
+
+	/**
 	 * Register collection of View Models and corresponding data in repository
 	 *
 	 * Create an collection of view models for each $data array element
@@ -394,6 +439,37 @@ class ViewModelRepo
 	public function registerModelsCollection($name, array $data, $optionalCollectionName = null)
 	{
 		return $this->collection('add', $name, array($data, $optionalCollectionName));
+	}
+
+	/**
+	 * @param $name
+	 * @param $nameAddOn
+	 * @return string
+	 */
+	protected function makeCollectionId($name, $nameAddOn)
+	{
+		$collectionId = $name . $nameAddOn . 'collection';
+
+		return $collectionId;
+	}
+
+	/**
+	 * @param $name
+	 * @param $collectionId
+	 * @param $isPickUp
+	 * @param $nameAddOn
+	 * @return string
+	 * @throws \LogicException
+	 */
+	protected function makeNewCollectionId($name, $collectionId, $isPickUp, $nameAddOn)
+	{
+		if (isset($nameAddOn) && !$isPickUp)
+		{
+			throw new LogicException(sprintf('Collection "%s" with optional name "%s" already registered', $name, $nameAddOn));
+		}
+		$collectionId .= count($this->collectionsIds);
+
+		return $collectionId;
 	}
 
 }

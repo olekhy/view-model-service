@@ -4,9 +4,10 @@ namespace ViewModelServiceTest;
 use BadMethodCallException;
 use InvalidArgumentException;
 use LogicException;
-use PHPUnit_Framework_Error;
 use PHPUnit_Framework_TestCase as TestCase;
+use Exception;
 use ViewModelService\ViewModelComposer;
+use ViewModelService\Exception\CallUndefCollectionException;
 use ViewModelServiceTest\TestAsset\ViewModel\FooViewModel;
 use ViewModelServiceTest\TestAsset\ViewModelRepo;
 use ViewModelServiceTest\TestAsset\ViewModel\RimmaViewModel;
@@ -55,11 +56,12 @@ class ViewModelRepoTest extends TestCase
 		$this->assertFalse($fact1 === $fact2);
 	}
 
-	public function test_Should_Register_Collection_Of_View_Models_And_Getting_Of_The_Same_Collection()
+	public function test_Should_Register_Collection_Of_View_Models_And_Can_Get_Back_The_Collection()
 	{
 		$data = array(array(1), array(2), array(3));
+
 		$this->repo->registerModelsCollection('Rimma', $data);
-		/** @var $fact RimmaViewModel[] */
+				/** @var $fact RimmaViewModel[] */
 		$fact = $this->repo->collectionGetRimma();
 
 		$this->assertTrue(3 === count($fact));
@@ -113,8 +115,8 @@ class ViewModelRepoTest extends TestCase
 	}
 
 	/**
-	 * @expectedException PHPUnit_Framework_Error
-	 * @expectedExceptionMessage Undefined index: Foo
+	 * @expectedException ViewModelService\Exception\CallUndefCollectionException
+	 * @expectedExceptionMessage Can not "get" an undefined collection "Foocollection"
 	 */
 	public function test_Can_Nor_Get_The_Collection_By_Using_Of_Bad_Optional_Collection_Name_AddOn()
 	{
@@ -128,64 +130,29 @@ class ViewModelRepoTest extends TestCase
 		$fact = $this->repo->collectionGetFoo();
 	}
 
-	/**
-	 * @expectedException InvalidArgumentException
-	 * @expectedExceptionMessage Sorry unexpected argument given "NULL", expected an array that each element will be used for building a ViewModel named "Rimma" in the collection
-	 */
-	public function test_Exception_Should_Be_Thrown_At_Register_Of_Collection_Of_View_Models_By_Invalid_Fitting_Data_Not_Array_Empty()
+	public function test_exception_should_be_thrown_by_add_collection_and_fitting_data_is_invalid()
 	{
-		$this->repo->collectionAddRimma();
-	}
-
-	/**
-	 * @expectedException InvalidArgumentException
-	 * @expectedExceptionMessage Sorry unexpected argument given "stdClass::__set_state(array(
-	))", expected an array that each element will be used for building a ViewModel named "Rimma" in the collection
-	 */
-	public function test_Exception_Should_Be_Thrown_At_Register_Of_Collection_Of_View_Models_By_Invalid_Fitting_Data_Not_Array_Not_Traversable_Instance()
-	{
-		$this->repo->collectionAddRimma(new \stdClass);
-	}
-
-	/**
-	 * @expectedException InvalidArgumentException
-	 * @expectedExceptionMessage Sorry unexpected argument given "NULL", expected an array that each element will be used for building a ViewModel named "Rimma" in the collection
-	 */
-	public function test_Exception_Should_Be_Thrown_At_Register_Of_Collection_Of_View_Models_By_Invalid_Fitting_Data_Not_Array_Null()
-	{
-		$this->repo->collectionAddRimma(null);
-	}
-
-	/**
-	 * @expectedException InvalidArgumentException
-	 * @expectedExceptionMessage Sorry unexpected argument given "NULL", expected an array that each element will be used for building a ViewModel named "Rimma" in the collection
-	 */
-	public function test_Exception_Should_Be_Thrown_At_Register_Of_Collection_Of_View_Models_By_Invalid_Fitting_Data_Not_Array_String()
-	{
-		$this->repo->collectionAddRimma('');
-	}
-
-	/**
-	 * @expectedException InvalidArgumentException
-	 * @expectedExceptionMessage Sorry unexpected argument given "123", expected an array that each element will be used for building a ViewModel named "Rimma" in the collection
-	 */
-	public function test_Exception_Should_Be_Thrown_At_Register_Of_Collection_Of_View_Models_By_Invalid_Fitting_Data_Not_Array_Int()
-	{
-		$this->repo->collectionAddRimma(123);
-	}
-
-	/**
-	 * @expectedException InvalidArgumentException
-	 * @expectedExceptionMessage Sorry unexpected argument given "123.456", expected an array that each element will be used for building a ViewModel named "Rimma" in the collection
-	 */
-	public function test_Exception_Should_Be_Thrown_At_Register_Of_Collection_Of_View_Models_By_Invalid_Fitting_Data_Not_Array_Real()
-	{
-		$this->repo->collectionAddRimma(123.456);
+		foreach (array(
+								 null,
+								 '',
+								 124,
+								 123.321
+						 ) as $typ)
+		{
+			try {
+				$this->repo->collectionAddRimma($typ);
+				$this->fail('expected exception ViewModelService\Exception\CallUndefCollectionException');
+			} catch (CallUndefCollectionException $e)
+			{
+				$this->assertStringStartsWith('Can not "add" an undefined collection "Rimma', $e->getMessage());
+				$this->assertStringEndsWith('collection"', $e->getMessage());
+			}
+		}
 	}
 
 	/**
 	 * @expectedException LogicException
-	 * @expectedExceptionMessage You try to override already registered recipe named "Superin_test"
+	 * @expectedExceptionMessage Recipe "Super"  with optional name "in_test
 	 */
 	public function test_Should_Throw_Exception_If_Recipe_Was_Added_Twice()
 	{
@@ -303,17 +270,7 @@ class ViewModelRepoTest extends TestCase
 
 	}
 
-	public function test_view_models_registered_by_same_way_are_not_identical_by_calling_them_by_using_returned_id()
-	{
-		$this->repo->registerModel('Foo', 1);
-		$viewId = $this->repo->registerModel('Foo', 1);
 
-		$foo = $this->repo->getFoo();
-		$foo2 = $this->repo->getFoo($viewId);
-		$this->assertInstanceOf('ViewModelServiceTest\TestAsset\ViewModel\FooViewModel', $foo2);
-		$this->assertSame(array(1), $foo2->getBuildArgs());
-		$this->assertNotSame($foo, $foo2);
-	}
 
 	public function test_should_register_same_qty_of_view_models_to_collection_as_qty_of_elements_in_data()
 	{
@@ -341,16 +298,20 @@ class ViewModelRepoTest extends TestCase
 		$this->assertTrue(empty($models));
 	}
 
-	/**
-	 * @expectedException LogicException
-	 * @expectedExceptionMessage You try to override already registered recipe named "Foo0"
-	 */
-	public function test_should_thrown_exception_when_trying_to_register_same_collection_again()
+	public function test_should_not_thrown_exception_when_trying_to_register_same_collection_twice()
 	{
 		$data = array_fill(0, 10, uniqid());
-		$this->repo->registerModelsCollection('Foo', $data);
-		$this->repo->registerModelsCollection('Foo', $data);
+		try{
+			$this->repo->registerModelsCollection('Foo', $data);
+			$this->repo->registerModelsCollection('Foo', $data);
+			$this->assertSame('','');
+		} catch (Exception $e)
+		{
+			$this->fail('Exception was thrown "' . $e . '"');
+		}
 	}
+
+
 	public function test_collections_that_registered_with_same_data_and_differ_optional_name_should_net_be_same()
 	{
 		$data = array_fill(0, 10, uniqid());
