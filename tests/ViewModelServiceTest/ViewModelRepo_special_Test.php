@@ -164,14 +164,14 @@ class ViewModelRepo_special_Test extends TestCase
 		$expectation = implode(', ', array_keys($ids));
 
 		$this->assertSame($expectation, implode(', ', $stack));
-
-		$examine = function(array $models, $type, $expectation) use(&$gqty)
+		$self = $this;
+		$examine = function(array $models, $type, $expectation) use(&$gqty, $self)
 		{
 			foreach ($models as $item)
 			{
 				$gqty--;
-				$this->assertInstanceOf('ViewModelServiceTest\TestAsset\ViewModel\\' . $type . 'ViewModel', $item);
-				$this->assertSame(array_shift($expectation), get_object_vars($item));
+				$self->assertInstanceOf('ViewModelServiceTest\TestAsset\ViewModel\\' . $type . 'ViewModel', $item);
+				$self->assertSame(array_shift($expectation), get_object_vars($item));
 			}
 		};
 
