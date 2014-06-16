@@ -45,7 +45,7 @@ class ViewModelComposer
 	}
 
 	/**
-	 * @param $recipeId
+	 * @param string $recipeId
 	 * @param $callable
 	 * @return CreationRecipe
 	 */

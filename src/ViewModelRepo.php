@@ -4,7 +4,6 @@ namespace ViewModelService;
 use BadMethodCallException;
 use InvalidArgumentException;
 use LogicException;
-use SebastianBergmann\Exporter\Exception;
 use ViewModelService\Exception\CallUndefCollectionException;
 use ViewModelService\ViewModel\ViewModelInterface;
 
@@ -223,7 +222,7 @@ class ViewModelRepo
 	}
 
 	/**
-	 * @param $name
+	 * @param string $name
 	 * @param $arguments
 	 * @throws InvalidArgumentException
 	 * @return string
@@ -274,8 +273,8 @@ class ViewModelRepo
 	}
 
 	/**
-	 * @param $type
-	 * @param $name
+	 * @param string $type
+	 * @param string $name
 	 * @param $arguments
 	 * @throws CallUndefCollectionException
 	 * @return array
@@ -360,7 +359,7 @@ class ViewModelRepo
 	 * @param $type
 	 * @param $name
 	 * @param $collectionId
-	 * @param $isPickUp
+	 * @param boolean $isPickUp
 	 * @throws InvalidArgumentException
 	 * @return array
 	 */
@@ -456,7 +455,7 @@ class ViewModelRepo
 	/**
 	 * @param $name
 	 * @param $collectionId
-	 * @param $isPickUp
+	 * @param boolean $isPickUp
 	 * @param $nameAddOn
 	 * @return string
 	 * @throws \LogicException
