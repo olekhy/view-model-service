@@ -18,7 +18,7 @@ interface ContextualCreateInterface
 
 	/**
 	 * @param ContextualCreateInterface $context
-	 * @return mixed
+	 * @return AbstractContextualCreate
 	 */
 	public function appendChainedContext(ContextualCreateInterface $context);
 
